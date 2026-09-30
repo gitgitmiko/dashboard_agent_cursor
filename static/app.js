@@ -30,6 +30,7 @@ async function api(url, options) {
 }
 
 function fillTable(body, rows, cells, emptyText) {
+  const headers = Array.from(body.closest("table").querySelectorAll("thead th"), (th) => th.textContent);
   body.replaceChildren();
   if (!rows.length) {
     const tr = document.createElement("tr");
@@ -42,16 +43,18 @@ function fillTable(body, rows, cells, emptyText) {
   }
   rows.forEach((row) => {
     const tr = document.createElement("tr");
-    row.forEach((value) => {
+    row.forEach((value, index) => {
       const td = document.createElement("td");
+      td.dataset.label = headers[index] || "";
+      const span = document.createElement("span");
+      span.className = "cell-value";
       if (value && typeof value === "object") {
-        const span = document.createElement("span");
         span.textContent = value.text;
-        if (value.className) span.className = value.className;
-        td.appendChild(span);
+        if (value.className) span.classList.add(value.className);
       } else {
-        td.textContent = value;
+        span.textContent = value;
       }
+      td.appendChild(span);
       tr.appendChild(td);
     });
     body.appendChild(tr);
@@ -187,12 +190,15 @@ function drawChart(candles, interval) {
     note.textContent = "Data grafik belum tersedia";
     return;
   }
-  const width = 800;
-  const height = 340;
-  const left = 12;
-  const right = 72;
-  const top = 16;
-  const bottom = 36;
+  const narrow = window.matchMedia("(max-width: 800px)").matches;
+  const width = narrow ? 390 : 800;
+  const height = narrow ? 300 : 340;
+  const left = narrow ? 6 : 12;
+  const right = narrow ? 72 : 72;
+  const top = narrow ? 10 : 16;
+  const bottom = narrow ? 28 : 36;
+  const font = narrow ? 15 : 12;
+  chartSvg.setAttribute("viewBox", "0 0 " + width + " " + height);
   const plotW = width - left - right;
   const plotH = height - top - bottom;
   let min = Math.min.apply(null, candles.map((candle) => candle.low));
@@ -217,17 +223,18 @@ function drawChart(candles, interval) {
     chartSvg.appendChild(svgEl("rect", { x: x - bodyW / 2, y: topY, width: bodyW, height: bodyH, fill: color }));
   });
   [max, (max + min) / 2, min].forEach((price) => {
-    const label = svgEl("text", { x: width - 8, y: yOf(price) + 4, fill: "#b7b2a6", "font-size": 12, "text-anchor": "end" });
+    const label = svgEl("text", { x: width - 4, y: yOf(price) + 4, fill: "#b7b2a6", "font-size": font, "text-anchor": "end" });
     label.textContent = formatAxisPrice(price);
     chartSvg.appendChild(label);
   });
-  [0, Math.floor((candles.length - 1) / 2), candles.length - 1].forEach((index, mark) => {
-    const anchor = mark === 0 ? "start" : mark === 2 ? "end" : "middle";
+  const timeMarks = narrow ? [0, candles.length - 1] : [0, Math.floor((candles.length - 1) / 2), candles.length - 1];
+  timeMarks.forEach((index, mark) => {
+    const anchor = mark === 0 ? "start" : mark === timeMarks.length - 1 ? "end" : "middle";
     const label = svgEl("text", {
       x: left + index * slot + slot / 2,
       y: height - 10,
       fill: "#b7b2a6",
-      "font-size": 12,
+      "font-size": font,
       "text-anchor": anchor
     });
     label.textContent = formatAxisTime(candles[index].time, interval);
@@ -246,7 +253,7 @@ function drawChart(candles, interval) {
   });
   guide.setAttribute("data-guide", "1");
   chartSvg.appendChild(guide);
-  chartLayout = { candles: candles, interval: interval, left: left, top: top, bottom: bottom, slot: slot, height: height };
+  chartLayout = { candles: candles, interval: interval, left: left, top: top, bottom: bottom, slot: slot, width: width, height: height, narrow: narrow };
   const last = candles[candles.length - 1];
   note.textContent = candles.length + " candle · penutupan " + last.close + " " + shownQuote;
   hideChartTip();
@@ -254,10 +261,11 @@ function drawChart(candles, interval) {
 
 function chartSvgX(event) {
   const rect = chartSvg.getBoundingClientRect();
-  if (!rect.width || !rect.height) return null;
+  const layout = chartLayout;
+  if (!rect.width || !rect.height || !layout) return null;
   return {
-    x: ((event.clientX - rect.left) / rect.width) * 800,
-    y: ((event.clientY - rect.top) / rect.height) * 340
+    x: ((event.clientX - rect.left) / rect.width) * layout.width,
+    y: ((event.clientY - rect.top) / rect.height) * layout.height
   };
 }
 
@@ -311,6 +319,15 @@ function showChartTip(index, event) {
     guide.setAttribute("x2", String(x));
     guide.setAttribute("visibility", "visible");
   }
+  const narrowTip = window.matchMedia("(max-width: 800px)").matches;
+  tip.classList.toggle("pinned", narrowTip);
+  if (narrowTip) {
+    tip.style.left = "8px";
+    tip.style.right = "8px";
+    tip.style.top = "8px";
+    return;
+  }
+  tip.style.right = "";
   const wrap = chartSvg.parentElement.getBoundingClientRect();
   let leftPx = event.clientX - wrap.left + 16;
   let topPx = event.clientY - wrap.top + 16;
@@ -355,6 +372,12 @@ chartSvg.addEventListener("pointermove", (event) => {
   hoverChart(event);
 });
 chartSvg.addEventListener("pointerleave", hideChartTip);
+chartSvg.addEventListener("pointercancel", hideChartTip);
+window.addEventListener("resize", () => {
+  if (!chartLayout) return;
+  const narrow = window.matchMedia("(max-width: 800px)").matches;
+  if (narrow !== chartLayout.narrow) drawChart(chartLayout.candles, chartLayout.interval);
+});
 chartSvg.addEventListener("pointerdown", (event) => {
   if (event.pointerType === "mouse") return;
   hoverChart(event);
