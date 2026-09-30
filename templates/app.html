@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex" />
 <meta name="csrf" content="{{ csrf }}" />
 <title>Pemantau</title>
-<link rel="stylesheet" href="/static/app.css?v=5" />
+<link rel="stylesheet" href="/static/app.css?v=6" />
 </head>
 <body>
 <header class="topbar">
@@ -26,20 +26,39 @@
     <div class="chips" id="chips"></div>
   </section>
   <section class="grid">
-    <article class="card">
-      <h2>Total aset</h2>
-      <p class="amount" id="total-idr">…</p>
-      <p class="meta" id="idr-rate">Menghitung kurs…</p>
+    <article class="card is-collapsed" id="card-total">
+      <h2>
+        <button type="button" class="card-toggle" aria-expanded="false" aria-controls="card-total-body">
+          <span>Total aset</span>
+          <span class="chevron" aria-hidden="true"></span>
+        </button>
+      </h2>
+      <div class="card-body" id="card-total-body">
+        <p class="amount" id="total-idr">…</p>
+        <p class="meta" id="idr-rate">Menghitung kurs…</p>
+      </div>
     </article>
-    <article class="card">
-      <h2>Rencana posisi</h2>
-      <p class="status" id="plan-status">Menghitung rencana…</p>
-      <ul class="plan" id="plan-detail"></ul>
+    <article class="card is-collapsed" id="card-plan">
+      <h2>
+        <button type="button" class="card-toggle" aria-expanded="false" aria-controls="card-plan-body">
+          <span>Rencana posisi</span>
+          <span class="chevron" aria-hidden="true"></span>
+        </button>
+      </h2>
+      <div class="card-body" id="card-plan-body">
+        <p class="status" id="plan-status">Menghitung rencana…</p>
+        <ul class="plan" id="plan-detail"></ul>
+      </div>
     </article>
   </section>
-  <section class="card">
-    <div class="section-head">
-      <h2>Grafik</h2>
+  <section class="card is-collapsed" id="card-chart">
+    <h2>
+      <button type="button" class="card-toggle" aria-expanded="false" aria-controls="card-chart-body">
+        <span>Grafik</span>
+        <span class="chevron" aria-hidden="true"></span>
+      </button>
+    </h2>
+    <div class="card-body" id="card-chart-body">
       <div class="timeframes" id="timeframes">
         <button type="button" data-interval="15m">15 mnt</button>
         <button type="button" data-interval="1h" class="active">1 jam</button>
@@ -47,60 +66,102 @@
         <button type="button" data-interval="1d">1 hari</button>
         <button type="button" data-interval="1w">1 minggu</button>
       </div>
-    </div>
-    <div class="chart-wrap">
-      <svg id="chart" class="chart" viewBox="0 0 800 340" role="img" aria-label="Grafik harga"></svg>
-      <div id="chart-tip" class="chart-tip" hidden></div>
-    </div>
-    <p class="note" id="chart-note">Memuat grafik…</p>
-  </section>
-  <section class="card">
-    <h2>Riwayat notifikasi</h2>
-    <div class="table-wrap">
-      <table>
-        <thead><tr><th>Waktu</th><th>Status</th><th>Pesan</th></tr></thead>
-        <tbody id="notifications"></tbody>
-      </table>
+      <div class="chart-wrap">
+        <svg id="chart" class="chart" viewBox="0 0 800 340" role="img" aria-label="Grafik harga"></svg>
+        <div id="chart-tip" class="chart-tip" hidden></div>
+      </div>
+      <p class="note" id="chart-note">Memuat grafik…</p>
     </div>
   </section>
-  <section class="card">
-    <h2>Biaya trading</h2>
-    <p class="meta" id="fees">Mengambil data akun…</p>
-  </section>
-  <section class="card">
-    <h2>Saldo spot</h2>
-    <div class="table-wrap">
-      <table>
-        <thead><tr><th>Aset</th><th>Bebas</th><th>Terkunci</th><th>Perkiraan USDT</th><th>Perkiraan IDR</th></tr></thead>
-        <tbody id="balances"></tbody>
-      </table>
+  <section class="card is-collapsed" id="card-notices">
+    <h2>
+      <button type="button" class="card-toggle" aria-expanded="false" aria-controls="card-notices-body">
+        <span>Riwayat notifikasi</span>
+        <span class="chevron" aria-hidden="true"></span>
+      </button>
+    </h2>
+    <div class="card-body" id="card-notices-body">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Waktu</th><th>Status</th><th>Pesan</th></tr></thead>
+          <tbody id="notifications"></tbody>
+        </table>
+      </div>
     </div>
   </section>
-  <section class="card">
-    <h2 id="open-orders-title">Order terbuka</h2>
-    <div class="table-wrap">
-      <table>
-        <thead><tr><th>Waktu</th><th>Sisi</th><th>Tipe</th><th>Harga</th><th>Jumlah</th><th>Terisi</th><th>Status</th></tr></thead>
-        <tbody id="open-orders"></tbody>
-      </table>
+  <section class="card is-collapsed" id="card-fees">
+    <h2>
+      <button type="button" class="card-toggle" aria-expanded="false" aria-controls="card-fees-body">
+        <span>Biaya trading</span>
+        <span class="chevron" aria-hidden="true"></span>
+      </button>
+    </h2>
+    <div class="card-body" id="card-fees-body">
+      <p class="meta" id="fees">Mengambil data akun…</p>
     </div>
   </section>
-  <section class="card">
-    <h2 id="order-history-title">Riwayat order</h2>
-    <div class="table-wrap">
-      <table>
-        <thead><tr><th>Waktu</th><th>Sisi</th><th>Tipe</th><th>Harga</th><th>Jumlah</th><th>Terisi</th><th>Status</th></tr></thead>
-        <tbody id="order-history"></tbody>
-      </table>
+  <section class="card is-collapsed" id="card-balances">
+    <h2>
+      <button type="button" class="card-toggle" aria-expanded="false" aria-controls="card-balances-body">
+        <span>Saldo spot</span>
+        <span class="chevron" aria-hidden="true"></span>
+      </button>
+    </h2>
+    <div class="card-body" id="card-balances-body">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Aset</th><th>Bebas</th><th>Terkunci</th><th>Perkiraan USDT</th><th>Perkiraan IDR</th></tr></thead>
+          <tbody id="balances"></tbody>
+        </table>
+      </div>
     </div>
   </section>
-  <section class="card">
-    <h2 id="trades-title">Riwayat transaksi</h2>
-    <div class="table-wrap">
-      <table>
-        <thead><tr><th>Waktu</th><th>Sisi</th><th>Harga</th><th>Jumlah</th><th id="trade-total">Total</th><th>Biaya</th></tr></thead>
-        <tbody id="trades"></tbody>
-      </table>
+  <section class="card is-collapsed" id="card-open-orders">
+    <h2>
+      <button type="button" class="card-toggle" aria-expanded="false" aria-controls="card-open-orders-body">
+        <span id="open-orders-title">Order terbuka</span>
+        <span class="chevron" aria-hidden="true"></span>
+      </button>
+    </h2>
+    <div class="card-body" id="card-open-orders-body">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Waktu</th><th>Sisi</th><th>Tipe</th><th>Harga</th><th>Jumlah</th><th>Terisi</th><th>Status</th></tr></thead>
+          <tbody id="open-orders"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+  <section class="card is-collapsed" id="card-orders">
+    <h2>
+      <button type="button" class="card-toggle" aria-expanded="false" aria-controls="card-orders-body">
+        <span id="order-history-title">Riwayat order</span>
+        <span class="chevron" aria-hidden="true"></span>
+      </button>
+    </h2>
+    <div class="card-body" id="card-orders-body">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Waktu</th><th>Sisi</th><th>Tipe</th><th>Harga</th><th>Jumlah</th><th>Terisi</th><th>Status</th></tr></thead>
+          <tbody id="order-history"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+  <section class="card is-collapsed" id="card-trades">
+    <h2>
+      <button type="button" class="card-toggle" aria-expanded="false" aria-controls="card-trades-body">
+        <span id="trades-title">Riwayat transaksi</span>
+        <span class="chevron" aria-hidden="true"></span>
+      </button>
+    </h2>
+    <div class="card-body" id="card-trades-body">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Waktu</th><th>Sisi</th><th>Harga</th><th>Jumlah</th><th id="trade-total">Total</th><th>Biaya</th></tr></thead>
+          <tbody id="trades"></tbody>
+        </table>
+      </div>
     </div>
   </section>
 </main>
@@ -154,6 +215,6 @@
   </div>
   <p class="note" id="status" role="status"></p>
 </dialog>
-<script src="/static/app.js?v=4"></script>
+<script src="/static/app.js?v=5"></script>
 </body>
 </html>

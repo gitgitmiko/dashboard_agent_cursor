@@ -146,8 +146,65 @@ async function refresh() {
       { text: row.error ? row.text + "\n" + row.error : row.text, className: "notice" }
     ]),
     3,
-    "Belum ada notifikasi"
+    "Belum ada notifikasi " + symbol
   );
+  syncCards(data);
+}
+
+const cardChoice = new Map();
+
+function setCardOpen(card, open) {
+  card.classList.toggle("is-collapsed", !open);
+  const button = card.querySelector(".card-toggle");
+  if (button) button.setAttribute("aria-expanded", open ? "true" : "false");
+}
+
+function settleCard(card, state) {
+  if (!card) return;
+  if (cardChoice.has(card.id)) {
+    setCardOpen(card, cardChoice.get(card.id));
+    return;
+  }
+  if (state === "loading") return;
+  setCardOpen(card, state === "empty");
+}
+
+function accountSettled(account) {
+  if (!account) return false;
+  if (account.updated_at) return true;
+  const error = account.error || "";
+  if (!error) return !!account.ok;
+  return !/belum diambil|belum tersedia|Mengambil|Menghitung/.test(error);
+}
+
+function syncChartCard() {
+  const note = document.querySelector("#chart-note").textContent;
+  let chartState = "loading";
+  if (note.includes("candle")) chartState = "filled";
+  else if (/belum|gagal|tidak/i.test(note)) chartState = "empty";
+  settleCard(document.querySelector("#card-chart"), chartState);
+}
+
+function syncCards(data) {
+  const account = data.account || {};
+  const settled = accountSettled(account);
+  const total = document.querySelector("#total-idr").textContent.trim();
+  const totalState = total && total !== "…" && total !== "-" ? "filled" : (settled ? "empty" : "loading");
+  settleCard(document.querySelector("#card-total"), totalState);
+  const planStatus = (data.plan && data.plan.status) || "";
+  settleCard(document.querySelector("#card-plan"), /Menghitung/.test(planStatus) || !planStatus ? "loading" : "filled");
+  syncChartCard();
+  settleCard(document.querySelector("#card-notices"), (data.notifications || []).length ? "filled" : "empty");
+  const fees = document.querySelector("#fees").textContent;
+  let feeState = "filled";
+  if (/Mengambil|belum diambil|belum tersedia/.test(fees)) feeState = settled ? "empty" : "loading";
+  else if (account.error) feeState = "empty";
+  settleCard(document.querySelector("#card-fees"), feeState);
+  const tableState = (rows) => settled ? (rows.length ? "filled" : "empty") : "loading";
+  settleCard(document.querySelector("#card-balances"), tableState(account.balances || []));
+  settleCard(document.querySelector("#card-open-orders"), tableState(account.open_orders || []));
+  settleCard(document.querySelector("#card-orders"), tableState(account.order_history || []));
+  settleCard(document.querySelector("#card-trades"), tableState(account.trades || []));
 }
 
 function svgEl(name, attrs) {
@@ -355,9 +412,11 @@ async function loadChart(interval) {
   const data = await response.json();
   if (!response.ok) {
     document.querySelector("#chart-note").textContent = data.error || "Grafik gagal dimuat";
+    syncChartCard();
     return;
   }
   drawChart(data.candles || [], interval);
+  syncChartCard();
 }
 
 const settingsDialog = document.querySelector("#settings");
@@ -366,6 +425,14 @@ document.querySelector("#close-settings").addEventListener("click", () => settin
 document.querySelector("#timeframes").addEventListener("click", (event) => {
   const button = event.target.closest("button");
   if (button) loadChart(button.dataset.interval);
+});
+document.querySelector("main").addEventListener("click", (event) => {
+  const button = event.target.closest(".card-toggle");
+  if (!button) return;
+  const card = button.closest(".card");
+  const open = card.classList.contains("is-collapsed");
+  cardChoice.set(card.id, open);
+  setCardOpen(card, open);
 });
 chartSvg.addEventListener("pointermove", (event) => {
   if (event.pointerType === "touch") return;

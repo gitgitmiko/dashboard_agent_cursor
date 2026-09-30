@@ -86,6 +86,35 @@ main { max-width: 72rem; margin: 0 auto; padding: 1rem max(1.25rem, env(safe-are
 .chip.ok { color: var(--up); }
 .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.8rem; }
 .card { padding: 1rem 1rem 1.1rem; margin-top: 0.8rem; }
+.card h2 { margin: 0; }
+.card-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+  margin: 0;
+  padding: 0.15rem 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  font-weight: 620;
+}
+.chevron {
+  width: 0.5rem;
+  height: 0.5rem;
+  margin-right: 0.2rem;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(45deg);
+  flex: none;
+}
+.card.is-collapsed .chevron { transform: rotate(-45deg); }
+.card-body { margin-top: 0.7rem; }
+.card.is-collapsed .card-body { display: none; }
+.card-body .timeframes { justify-content: flex-end; }
 .section-head { display: flex; justify-content: space-between; gap: 0.8rem; align-items: center; flex-wrap: wrap; }
 .timeframes { display: flex; flex-wrap: wrap; gap: 0.4rem; }
 .timeframes button { margin: 0; background: transparent; color: var(--text); border: 1px solid #5c6558; padding: 0.4rem 0.7rem; min-height: 40px; }

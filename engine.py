@@ -4,6 +4,7 @@
 import hashlib
 import hmac
 import json
+import re
 import threading
 import time
 import urllib.error
@@ -384,18 +385,34 @@ def publish_plan(status, detail):
         plan_view["detail"] = detail
 
 
-def remember_notice(text, error, state=None):
+def notice_pair(item):
+    stored = str((item or {}).get("pair") or "").strip().upper()
+    if "/" in stored:
+        return stored
+    match = re.search(r"\b([A-Z0-9]{2,12}/[A-Z0-9]{2,12})\b", str((item or {}).get("text") or ""))
+    return match.group(1) if match else ""
+
+
+def remember_notice(text, error, state=None, pair=None):
     entry = {
         "time": now_wib(),
         "text": text,
         "status": "Terkirim" if error is None else "Gagal",
         "error": error,
+        "pair": notice_pair({"pair": pair, "text": text}) or current_pair(),
     }
 
     def apply(target):
-        notices = list(target.get("notices") or [])
-        notices.insert(0, entry)
-        target["notices"] = notices[:40]
+        notices = [entry]
+        counts = {entry["pair"]: 1}
+        for item in target.get("notices") or []:
+            key = notice_pair(item) or "_"
+            count = counts.get(key, 0) + 1
+            if count > 40:
+                continue
+            counts[key] = count
+            notices.append(item)
+        target["notices"] = notices
 
     if state is not None:
         apply(state)
@@ -956,9 +973,11 @@ def public_status():
                 "text": item.get("text") or "",
                 "status": item.get("status") or "-",
                 "error": item.get("error"),
+                "pair": notice_pair(item),
             }
-            for item in (state.get("notices") or [])[:40]
-        ],
+            for item in (state.get("notices") or [])
+            if notice_pair(item) == pair
+        ][:40],
     }
 
 
