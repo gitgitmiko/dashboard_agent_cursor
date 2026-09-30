@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="robots" content="noindex" />
+<meta name="csrf" content="{{ csrf }}" />
+<title>Pemantau</title>
+<link rel="stylesheet" href="/static/app.css?v=2" />
+</head>
+<body>
+<header class="topbar">
+  <div>
+    <p class="brand">Pemantau</p>
+    <h1 id="pair-title">Memuat…</h1>
+  </div>
+  <div class="top-actions">
+    <button type="button" id="open-settings" class="ghost">Pengaturan</button>
+    <button type="button" id="logout" class="ghost">Keluar</button>
+  </div>
+</header>
+<main>
+  <section class="hero">
+    <p class="price" id="price">…</p>
+    <p class="meta" id="meta">Mengambil harga dari Tokocrypto…</p>
+    <div class="chips" id="chips"></div>
+  </section>
+  <section class="grid">
+    <article class="card">
+      <h2>Total aset</h2>
+      <p class="amount" id="total-idr">…</p>
+      <p class="meta" id="idr-rate">Menghitung kurs…</p>
+    </article>
+    <article class="card">
+      <h2>Rencana posisi</h2>
+      <p class="status" id="plan-status">Menghitung rencana…</p>
+      <ul class="plan" id="plan-detail"></ul>
+    </article>
+  </section>
+  <section class="card">
+    <div class="section-head">
+      <h2>Grafik</h2>
+      <div class="timeframes" id="timeframes">
+        <button type="button" data-interval="15m">15 mnt</button>
+        <button type="button" data-interval="1h" class="active">1 jam</button>
+        <button type="button" data-interval="4h">4 jam</button>
+        <button type="button" data-interval="1d">1 hari</button>
+        <button type="button" data-interval="1w">1 minggu</button>
+      </div>
+    </div>
+    <svg id="chart" class="chart" viewBox="0 0 800 340" role="img" aria-label="Grafik harga"></svg>
+    <p class="note" id="chart-note">Memuat grafik…</p>
+  </section>
+  <section class="card">
+    <h2>Riwayat notifikasi</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Waktu</th><th>Status</th><th>Pesan</th></tr></thead>
+        <tbody id="notifications"></tbody>
+      </table>
+    </div>
+  </section>
+  <section class="card">
+    <h2>Biaya trading</h2>
+    <p class="meta" id="fees">Mengambil data akun…</p>
+  </section>
+  <section class="card">
+    <h2>Saldo spot</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Aset</th><th>Bebas</th><th>Terkunci</th><th>Perkiraan USDT</th><th>Perkiraan IDR</th></tr></thead>
+        <tbody id="balances"></tbody>
+      </table>
+    </div>
+  </section>
+  <section class="card">
+    <h2 id="open-orders-title">Order terbuka</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Waktu</th><th>Sisi</th><th>Tipe</th><th>Harga</th><th>Jumlah</th><th>Terisi</th><th>Status</th></tr></thead>
+        <tbody id="open-orders"></tbody>
+      </table>
+    </div>
+  </section>
+  <section class="card">
+    <h2 id="order-history-title">Riwayat order</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Waktu</th><th>Sisi</th><th>Tipe</th><th>Harga</th><th>Jumlah</th><th>Terisi</th><th>Status</th></tr></thead>
+        <tbody id="order-history"></tbody>
+      </table>
+    </div>
+  </section>
+  <section class="card">
+    <h2 id="trades-title">Riwayat transaksi</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Waktu</th><th>Sisi</th><th>Harga</th><th>Jumlah</th><th id="trade-total">Total</th><th>Biaya</th></tr></thead>
+        <tbody id="trades"></tbody>
+      </table>
+    </div>
+  </section>
+</main>
+<dialog id="settings">
+  <div class="settings-head">
+    <h2>Pengaturan</h2>
+    <button type="button" id="close-settings" class="ghost">Tutup</button>
+  </div>
+  <section>
+    <h3>Pair</h3>
+    <label for="pair">Pair trading</label>
+    <input id="pair" placeholder="HBAR/USDT" />
+    <p class="note">Contoh BNB/USDT. Grafik, harga, rencana, dan riwayat order ikut berubah. Batas harga dikosongkan saat pair diganti.</p>
+  </section>
+  <section>
+    <h3>Batas harga</h3>
+    <label for="above">Beri tahu jika harga naik ke</label>
+    <input id="above" inputmode="decimal" placeholder="kosongkan jika tidak dipakai" />
+    <label for="below">Beri tahu jika harga turun ke</label>
+    <input id="below" inputmode="decimal" placeholder="kosongkan jika tidak dipakai" />
+  </section>
+  <section>
+    <h3>API Tokocrypto</h3>
+    <p class="note">Kunci hanya disimpan di server ini. Kosongkan jika tidak ingin mengganti. Jangan gunakan kunci yang punya izin tarik dana.</p>
+    <label for="api-key">API key</label>
+    <input id="api-key" type="password" autocomplete="off" />
+    <label for="api-secret">Secret key</label>
+    <input id="api-secret" type="password" autocomplete="off" />
+  </section>
+  <section>
+    <h3>Telegram</h3>
+    <p class="note">Token dari BotFather dan chat ID Anda. Kosongkan token jika tidak ingin menggantinya.</p>
+    <label for="token">Token bot</label>
+    <input id="token" type="password" autocomplete="off" />
+    <label for="chat">Chat ID</label>
+    <input id="chat" inputmode="numeric" autocomplete="off" />
+    <button type="button" id="test" class="ghost">Kirim pesan percobaan</button>
+  </section>
+  <section>
+    <h3>Kata sandi</h3>
+    <label for="current-password">Kata sandi sekarang</label>
+    <input id="current-password" type="password" autocomplete="current-password" />
+    <label for="new-password">Kata sandi baru</label>
+    <input id="new-password" type="password" autocomplete="new-password" />
+    <label for="confirm-password">Ulangi kata sandi baru</label>
+    <input id="confirm-password" type="password" autocomplete="new-password" />
+    <button type="button" id="save-password" class="ghost">Ganti kata sandi</button>
+  </section>
+  <div class="settings-actions">
+    <button type="button" id="save">Simpan pengaturan</button>
+  </div>
+  <p class="note" id="status" role="status"></p>
+</dialog>
+<script src="/static/app.js?v=2"></script>
+</body>
+</html>

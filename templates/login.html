@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="robots" content="noindex" />
+<title>{% if mode == "setup" %}Buat kata sandi{% else %}Masuk{% endif %}</title>
+<link rel="stylesheet" href="/static/app.css?v=2" />
+</head>
+<body class="gate">
+<main class="gate-card">
+  <p class="brand">Pemantau</p>
+  {% if mode == "setup" %}
+  <h1>Buat kata sandi</h1>
+  <p class="lead">Halaman ini menampilkan saldo dan kunci API. Kata sandi membuatnya tidak terbuka untuk semua orang di jaringan yang sama.</p>
+  <form method="post" action="/setup">
+    <input type="hidden" name="csrf" value="{{ form_csrf }}" />
+    <label for="password">Kata sandi baru</label>
+    <input id="password" name="password" type="password" autocomplete="new-password" minlength="10" required />
+    <label for="confirm">Ulangi kata sandi</label>
+    <input id="confirm" name="confirm" type="password" autocomplete="new-password" minlength="10" required />
+    <button type="submit">Simpan dan masuk</button>
+  </form>
+  {% else %}
+  <h1>Masuk</h1>
+  <p class="lead">Gunakan kata sandi yang Anda buat di perangkat ini.</p>
+  <form method="post" action="/login">
+    <input type="hidden" name="csrf" value="{{ form_csrf }}" />
+    <label for="password">Kata sandi</label>
+    <input id="password" name="password" type="password" autocomplete="current-password" required />
+    <button type="submit">Masuk</button>
+  </form>
+  {% endif %}
+  {% if error %}<p class="err" role="alert">{{ error }}</p>{% endif %}
+</main>
+</body>
+</html>
