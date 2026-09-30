@@ -89,7 +89,23 @@ main { max-width: 72rem; margin: 0 auto; padding: 1rem 1.25rem 3rem; }
 .timeframes { display: flex; flex-wrap: wrap; gap: 0.4rem; }
 .timeframes button { margin: 0; background: transparent; color: var(--text); border: 1px solid #5c6558; padding: 0.4rem 0.7rem; min-height: 40px; }
 .timeframes button.active { background: var(--text); color: #151815; }
-.chart { width: 100%; height: auto; display: block; margin-top: 0.6rem; background: #101410; border-radius: 12px; }
+.chart-wrap { position: relative; margin-top: 0.6rem; }
+.chart { width: 100%; height: auto; display: block; background: #101410; border-radius: 12px; cursor: crosshair; touch-action: none; }
+.chart-tip {
+  position: absolute;
+  z-index: 3;
+  pointer-events: none;
+  min-width: 11.5rem;
+  padding: 0.5rem 0.7rem;
+  border-radius: 10px;
+  background: #1b211b;
+  border: 1px solid #5c6558;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.4);
+  font-size: 0.82rem;
+}
+.chart-tip p { display: flex; justify-content: space-between; gap: 0.9rem; margin: 0.12rem 0; }
+.chart-tip-time { display: block; color: var(--muted); margin: 0 0 0.28rem; }
+.chart-tip strong { font-variant-numeric: tabular-nums; font-weight: 650; }
 .status { margin: 0 0 0.6rem; }
 .plan { margin: 0; padding-left: 1.1rem; }
 .plan li { margin: 0.25rem 0; }

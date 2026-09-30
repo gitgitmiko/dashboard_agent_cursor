@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex" />
 <meta name="csrf" content="{{ csrf }}" />
 <title>Pemantau</title>
-<link rel="stylesheet" href="/static/app.css?v=2" />
+<link rel="stylesheet" href="/static/app.css?v=3" />
 </head>
 <body>
 <header class="topbar">
@@ -48,7 +48,10 @@
         <button type="button" data-interval="1w">1 minggu</button>
       </div>
     </div>
-    <svg id="chart" class="chart" viewBox="0 0 800 340" role="img" aria-label="Grafik harga"></svg>
+    <div class="chart-wrap">
+      <svg id="chart" class="chart" viewBox="0 0 800 340" role="img" aria-label="Grafik harga"></svg>
+      <div id="chart-tip" class="chart-tip" hidden></div>
+    </div>
     <p class="note" id="chart-note">Memuat grafik…</p>
   </section>
   <section class="card">
@@ -151,6 +154,6 @@
   </div>
   <p class="note" id="status" role="status"></p>
 </dialog>
-<script src="/static/app.js?v=2"></script>
+<script src="/static/app.js?v=3"></script>
 </body>
 </html>

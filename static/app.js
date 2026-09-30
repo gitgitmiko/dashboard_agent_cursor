@@ -14,6 +14,7 @@ let filled = false;
 let shownSymbol = "";
 let shownQuote = "USDT";
 let chartInterval = "1h";
+let chartLayout = null;
 
 function showStatus(text, isError) {
   statusEl.textContent = text || "";
@@ -158,6 +159,15 @@ function formatAxisPrice(price) {
   return price.toFixed(5);
 }
 
+function formatTipTime(ms, interval) {
+  const date = new Date(ms);
+  const zone = { timeZone: "Asia/Jakarta" };
+  if (interval === "1d" || interval === "1w") {
+    return date.toLocaleDateString("id-ID", Object.assign({ weekday: "short", day: "2-digit", month: "short", year: "numeric" }, zone));
+  }
+  return date.toLocaleString("id-ID", Object.assign({ day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }, zone));
+}
+
 function formatAxisTime(ms, interval) {
   const date = new Date(ms);
   const zone = { timeZone: "Asia/Jakarta" };
@@ -223,8 +233,100 @@ function drawChart(candles, interval) {
     label.textContent = formatAxisTime(candles[index].time, interval);
     chartSvg.appendChild(label);
   });
+  const guide = svgEl("line", {
+    x1: 0,
+    x2: 0,
+    y1: top,
+    y2: height - bottom,
+    stroke: "#efe8d8",
+    "stroke-width": 1,
+    "stroke-opacity": 0.45,
+    "pointer-events": "none",
+    visibility: "hidden"
+  });
+  guide.setAttribute("data-guide", "1");
+  chartSvg.appendChild(guide);
+  chartLayout = { candles: candles, interval: interval, left: left, top: top, bottom: bottom, slot: slot, height: height };
   const last = candles[candles.length - 1];
   note.textContent = candles.length + " candle · penutupan " + last.close + " " + shownQuote;
+  hideChartTip();
+}
+
+function chartSvgX(event) {
+  const rect = chartSvg.getBoundingClientRect();
+  if (!rect.width || !rect.height) return null;
+  return {
+    x: ((event.clientX - rect.left) / rect.width) * 800,
+    y: ((event.clientY - rect.top) / rect.height) * 340
+  };
+}
+
+function candleIndexAt(point) {
+  if (!chartLayout || !point) return -1;
+  const layout = chartLayout;
+  if (point.y < layout.top || point.y > layout.height - layout.bottom) return -1;
+  const index = Math.floor((point.x - layout.left) / layout.slot);
+  if (index < 0 || index >= layout.candles.length) return -1;
+  return index;
+}
+
+function hideChartTip() {
+  const tip = document.querySelector("#chart-tip");
+  if (tip) tip.hidden = true;
+  const guide = chartSvg.querySelector("[data-guide]");
+  if (guide) guide.setAttribute("visibility", "hidden");
+}
+
+function showChartTip(index, event) {
+  const layout = chartLayout;
+  const candle = layout.candles[index];
+  const tip = document.querySelector("#chart-tip");
+  tip.replaceChildren();
+  const when = document.createElement("p");
+  when.className = "chart-tip-time";
+  when.textContent = formatTipTime(candle.time, layout.interval);
+  tip.appendChild(when);
+  const rising = candle.close >= candle.open;
+  [
+    ["Buka", candle.open],
+    ["Tertinggi", candle.high],
+    ["Terendah", candle.low],
+    ["Tutup", candle.close]
+  ].forEach(([label, price]) => {
+    const row = document.createElement("p");
+    const name = document.createElement("span");
+    name.textContent = label;
+    const value = document.createElement("strong");
+    value.textContent = formatAxisPrice(price) + " " + shownQuote;
+    if (label === "Tutup") value.className = rising ? "up" : "down";
+    row.appendChild(name);
+    row.appendChild(value);
+    tip.appendChild(row);
+  });
+  tip.hidden = false;
+  const guide = chartSvg.querySelector("[data-guide]");
+  if (guide) {
+    const x = layout.left + index * layout.slot + layout.slot / 2;
+    guide.setAttribute("x1", String(x));
+    guide.setAttribute("x2", String(x));
+    guide.setAttribute("visibility", "visible");
+  }
+  const wrap = chartSvg.parentElement.getBoundingClientRect();
+  let leftPx = event.clientX - wrap.left + 16;
+  let topPx = event.clientY - wrap.top + 16;
+  if (leftPx + tip.offsetWidth > wrap.width - 8) leftPx = event.clientX - wrap.left - tip.offsetWidth - 16;
+  if (topPx + tip.offsetHeight > wrap.height - 8) topPx = event.clientY - wrap.top - tip.offsetHeight - 12;
+  tip.style.left = Math.max(8, leftPx) + "px";
+  tip.style.top = Math.max(8, topPx) + "px";
+}
+
+function hoverChart(event) {
+  const index = candleIndexAt(chartSvgX(event));
+  if (index < 0) {
+    hideChartTip();
+    return;
+  }
+  showChartTip(index, event);
 }
 
 async function loadChart(interval) {
@@ -247,6 +349,15 @@ document.querySelector("#close-settings").addEventListener("click", () => settin
 document.querySelector("#timeframes").addEventListener("click", (event) => {
   const button = event.target.closest("button");
   if (button) loadChart(button.dataset.interval);
+});
+chartSvg.addEventListener("pointermove", (event) => {
+  if (event.pointerType === "touch") return;
+  hoverChart(event);
+});
+chartSvg.addEventListener("pointerleave", hideChartTip);
+chartSvg.addEventListener("pointerdown", (event) => {
+  if (event.pointerType === "mouse") return;
+  hoverChart(event);
 });
 document.querySelector("#logout").addEventListener("click", async () => {
   await api("/logout", { method: "POST" });
