@@ -88,6 +88,7 @@ def help_text():
             "/batal — lepaskan repo dan model",
             "/status — repo, model, dan pekerjaan yang sedang berjalan",
             "Urutannya: pilih repo, pilih model, lalu kirim perintah coding.",
+            "Perintah coding menarik branch dulu, baru agen mengubah kode.",
         ]
     )
 
@@ -290,11 +291,15 @@ def await_cloud_agent(api_key, agent_id):
 def run_agent(repo, prompt, mode, model, api_key):
     from cursor_sdk import Agent, CloudAgentOptions, CloudRepository
 
+    branch = repo.get("branch") or "main"
     instructions = (
         "Kerjakan permintaan pemilik repo ini.\n"
-        "Commit perubahan lalu push ke branch yang sedang dipakai.\n"
+        "Sebelum mengubah file, tarik branch %s dengan git pull --ff-only origin %s.\n"
+        "Kalau tarikan itu gagal, berhenti dan jelaskan bentroknya tanpa mengubah file.\n"
+        "Setelah branch terbaru ada di kerjaanmu, baru kerjakan permintaan.\n"
+        "Commit perubahan lalu push ke branch yang sama.\n"
         "Jangan mengubah atau menampilkan config.json, state.json, token, atau kunci API.\n\n"
-        "Permintaan:\n%s" % prompt
+        "Permintaan:\n%s" % (branch, branch, prompt)
     )
     with Agent.create(
         model=model,
@@ -391,6 +396,9 @@ def work(repo, prompt, model):
     try:
         if not api_key:
             raise RuntimeError("API key Cursor belum diisi di Pengaturan")
+        pulled = pull_repo(repo, str(cfg.get("github_token") or "").strip())
+        if pulled and not pulled.startswith("Kode di STB sudah ditarik."):
+            raise RuntimeError(pulled + " Perubahan belum dimulai.")
         status, summary, usage, charged = run_agent(repo, prompt, mode, model, api_key)
     except Exception as exc:
         status = "error"
@@ -566,7 +574,12 @@ def start_job(selected, cleaned, model):
         return "Masih ada pekerjaan yang berjalan. Tunggu sampai selesai."
     threading.Thread(target=work, args=(selected, cleaned, model), daemon=True).start()
     label = "Auto" if model == "auto" else model
-    return "Menggarap %s dengan %s. Hasilnya dikirim ke sini setelah agen selesai." % (selected.get("full_name"), label)
+    branch = selected.get("branch") or "main"
+    return "Branch %s ditarik dulu, lalu %s dikerjakan dengan %s. Hasilnya dikirim ke sini setelah agen selesai." % (
+        branch,
+        selected.get("full_name"),
+        label,
+    )
 
 
 def skip_old_messages(token):
