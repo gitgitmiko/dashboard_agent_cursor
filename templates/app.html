@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex" />
 <meta name="csrf" content="{{ csrf }}" />
 <title>Gitgitmiko</title>
-<link rel="stylesheet" href="/static/app.css?v=11" />
+<link rel="stylesheet" href="/static/app.css?v=12" />
 </head>
 <body>
 <header class="topbar">
@@ -27,13 +27,18 @@
       <h2>Token Auto</h2>
       <p class="amount" id="auto-tokens">…</p>
       <p class="meta" id="auto-meta">Model yang dipilih router Cursor</p>
+      <div class="usage-track" aria-hidden="true"><span class="usage-fill" id="auto-bar"></span></div>
+      <p class="meta usage-percent" id="auto-percent">…</p>
     </article>
     <article class="card">
       <h2>Token custom</h2>
       <p class="amount" id="custom-tokens">…</p>
       <p class="meta" id="custom-meta">Model yang dipilih sendiri</p>
+      <div class="usage-track" aria-hidden="true"><span class="usage-fill" id="custom-bar"></span></div>
+      <p class="meta usage-percent" id="custom-percent">…</p>
     </article>
   </section>
+  <p class="note" id="usage-note">Angka dolar adalah nilai pemakaian agen menurut Cursor untuk pekerjaan yang tercatat di dasbor ini. Selama masih dalam kuota included paket (misalnya Pro $20), itu mengurangi kuota paket—bukan biaya di luar langganan. Tagihan ekstra hanya muncul jika on-demand aktif setelah kuota included habis. Persentase membandingkan Auto vs custom di dasbor ini; persen kuota resmi paket ada di Cursor → Spending.</p>
   <section class="card">
     <h2>Repo agen</h2>
     <p class="note">Hanya repo di daftar ini yang bisa dikerjakan dari Telegram. Di Telegram: pilih repo, pilih model, lalu kirim perintah.</p>
@@ -54,6 +59,6 @@
     </div>
   </section>
 </main>
-<script src="/static/app.js?v=11"></script>
+<script src="/static/app.js?v=12"></script>
 </body>
 </html>

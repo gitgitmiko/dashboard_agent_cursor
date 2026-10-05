@@ -49,7 +49,27 @@ function formatTokens(value) {
 function formatCents(value) {
   const cents = Number(value || 0);
   if (!cents) return "";
-  return " · $" + (cents / 100).toFixed(2);
+  return " · nilai $" + (cents / 100).toFixed(2);
+}
+
+function formatPercent(value) {
+  const num = Number(value || 0);
+  if (!Number.isFinite(num)) return "0%";
+  return (Math.round(num * 10) / 10).toLocaleString("id-ID", {
+    minimumFractionDigits: Number.isInteger(num) ? 0 : 1,
+    maximumFractionDigits: 1
+  }) + "%";
+}
+
+function fillUsageCard(prefix, bucket) {
+  document.querySelector("#" + prefix + "-tokens").textContent = formatTokens(bucket.tokens);
+  document.querySelector("#" + prefix + "-meta").textContent =
+    (bucket.runs || 0) + " pekerjaan" + formatCents(bucket.cents);
+  const percent = Number(bucket.percent || 0);
+  document.querySelector("#" + prefix + "-percent").textContent =
+    formatPercent(percent) + " dari pemakaian agen di dasbor ini";
+  const bar = document.querySelector("#" + prefix + "-bar");
+  if (bar) bar.style.width = Math.max(0, Math.min(100, percent)) + "%";
 }
 
 function dash(value) {
@@ -101,10 +121,8 @@ function modelLine(model) {
 async function refreshHome() {
   const data = await readDashboard();
   if (!data) return;
-  document.querySelector("#auto-tokens").textContent = formatTokens(data.usage.auto.tokens);
-  document.querySelector("#custom-tokens").textContent = formatTokens(data.usage.custom.tokens);
-  document.querySelector("#auto-meta").textContent = data.usage.auto.runs + " pekerjaan" + formatCents(data.usage.auto.cents);
-  document.querySelector("#custom-meta").textContent = data.usage.custom.runs + " pekerjaan" + formatCents(data.usage.custom.cents);
+  fillUsageCard("auto", data.usage.auto || {});
+  fillUsageCard("custom", data.usage.custom || {});
   const ready = [
     data.cursor_ready ? "Cursor tersimpan" : "Cursor belum diisi",
     data.telegram_ready ? "Telegram tersambung" : "Telegram belum lengkap"

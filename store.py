@@ -231,11 +231,15 @@ def public_view():
                 "model": item.get("model") or "",
                 "total_tokens": int(item.get("total_tokens") or 0),
                 "charged_cents": item.get("charged_cents"),
+                "raw_cost_cents": item.get("raw_cost_cents"),
                 "status": item.get("status") or "",
                 "summary": item.get("summary") or "",
             }
         )
-    usage = {"auto": {"tokens": 0, "runs": 0, "cents": 0}, "custom": {"tokens": 0, "runs": 0, "cents": 0}}
+    usage = {
+        "auto": {"tokens": 0, "runs": 0, "cents": 0, "raw_cents": 0, "percent": 0},
+        "custom": {"tokens": 0, "runs": 0, "cents": 0, "raw_cents": 0, "percent": 0},
+    }
     for item in state.get("runs") or []:
         if not isinstance(item, dict):
             continue
@@ -243,6 +247,16 @@ def public_view():
         bucket["runs"] += 1
         bucket["tokens"] += int(item.get("total_tokens") or 0)
         bucket["cents"] += float(item.get("charged_cents") or 0)
+        bucket["raw_cents"] += float(item.get("raw_cost_cents") or 0)
+    total_tokens = usage["auto"]["tokens"] + usage["custom"]["tokens"]
+    total_cents = usage["auto"]["cents"] + usage["custom"]["cents"]
+    for key in ("auto", "custom"):
+        if total_cents > 0:
+            usage[key]["percent"] = round(100.0 * usage[key]["cents"] / total_cents, 1)
+        elif total_tokens > 0:
+            usage[key]["percent"] = round(100.0 * usage[key]["tokens"] / total_tokens, 1)
+        else:
+            usage[key]["percent"] = 0.0
     repos = []
     for repo in cfg.get("repos") or []:
         repos.append(

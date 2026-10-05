@@ -101,7 +101,7 @@ def token_count(usage, name):
     return int(getattr(usage, name, 0) or 0)
 
 
-def record_run(repo, mode, model, status, summary, usage, charged_cents):
+def record_run(repo, mode, model, status, summary, usage, charged_cents, raw_cost_cents=None):
     entry = {
         "time": now_wib(),
         "repo": repo.get("full_name") or "",
@@ -115,6 +115,7 @@ def record_run(repo, mode, model, status, summary, usage, charged_cents):
         "cache_write_tokens": token_count(usage, "cache_write_tokens"),
         "total_tokens": token_count(usage, "total_tokens"),
         "charged_cents": charged_cents,
+        "raw_cost_cents": raw_cost_cents,
     }
 
     def remember(state):
@@ -318,15 +319,18 @@ def run_agent(repo, prompt, mode, model, api_key):
         status, text = await_cloud_agent(api_key, agent_id)
         usage = None
         charged = None
+        raw_cost = None
         try:
             billed = agent.get_usage()
             if billed is not None and getattr(billed, "cost", None) is not None:
                 charged = getattr(billed.cost, "charged_cents", None)
+                raw_cost = getattr(billed.cost, "raw_cost_cents", None)
             if usage is None and getattr(billed, "usage", None) is not None:
                 usage = billed.usage
         except Exception:
             charged = None
-        return status, text, usage, charged
+            raw_cost = None
+        return status, text, usage, charged, raw_cost
 
 
 def list_custom_models(api_key):
@@ -393,18 +397,19 @@ def work(repo, prompt, model):
     summary = ""
     usage = None
     charged = None
+    raw_cost = None
     try:
         if not api_key:
             raise RuntimeError("API key Cursor belum diisi di Pengaturan")
         pulled = pull_repo(repo, str(cfg.get("github_token") or "").strip())
         if pulled and not pulled.startswith("Kode di STB sudah ditarik."):
             raise RuntimeError(pulled + " Perubahan belum dimulai.")
-        status, summary, usage, charged = run_agent(repo, prompt, mode, model, api_key)
+        status, summary, usage, charged, raw_cost = run_agent(repo, prompt, mode, model, api_key)
     except Exception as exc:
         status = "error"
         summary = str(exc)
     finally:
-        record_run(repo, mode, model, status or "error", summary or status, usage, charged)
+        record_run(repo, mode, model, status or "error", summary or status, usage, charged, raw_cost)
         store.update_state(lambda state: state.update({"job": None}))
     follow = ""
     if status not in ("error", "cancelled", "canceled", ""):
