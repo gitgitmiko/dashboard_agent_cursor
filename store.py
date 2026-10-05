@@ -1,5 +1,7 @@
 import json
+import os
 import re
+import subprocess
 import threading
 from pathlib import Path
 
@@ -191,6 +193,29 @@ def sync_allowlist():
     write_allowlist(get_config().get("repos") or [])
 
 
+def last_commit(repo):
+    path = str(repo.get("local_path") or "").strip()
+    if not path or not Path(path, ".git").is_dir():
+        return ""
+    env = os.environ.copy()
+    env["GIT_TERMINAL_PROMPT"] = "0"
+    try:
+        completed = subprocess.run(
+            ["git", "-C", path, "log", "-1", "--pretty=format:%h %s"],
+            capture_output=True,
+            timeout=5,
+            env=env,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return ""
+    if completed.returncode != 0:
+        return ""
+    text = " ".join((completed.stdout or b"").decode("utf-8", "replace").split())
+    if len(text) > 96:
+        return text[:93].rstrip() + "…"
+    return text
+
+
 def public_view():
     cfg = get_config()
     state = get_state()
@@ -228,6 +253,7 @@ def public_view():
                 "url": repo.get("url") or "",
                 "branch": repo.get("branch") or "main",
                 "service": repo.get("service") or "",
+                "last_commit": last_commit(repo),
             }
         )
     job = state.get("job") if isinstance(state.get("job"), dict) else None

@@ -85,6 +85,8 @@ function repoRows(repos, withRemove) {
       });
       row.push({ label: "Layanan", text: dash(repo.service) });
       row.push({ label: "", node: remove });
+    } else {
+      row.push({ label: "Commit terakhir", text: dash(repo.last_commit) });
     }
     return row;
   });
@@ -115,7 +117,7 @@ async function refreshHome() {
   } else {
     job.hidden = true;
   }
-  fillTable(document.querySelector("#repos"), repoRows(data.repos, false), 2, "Belum ada repo. Tambah dari Pengaturan.");
+  fillTable(document.querySelector("#repos"), repoRows(data.repos, false), 3, "Belum ada repo. Tambah dari Pengaturan.");
   fillTable(
     document.querySelector("#runs"),
     (data.runs || []).map((run) => [
