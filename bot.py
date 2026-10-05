@@ -232,6 +232,61 @@ def restart_service(service):
     return "Layanan %s dijalankan ulang." % service
 
 
+CLOUD_DONE = {
+    "FINISHED": "finished",
+    "ERROR": "error",
+    "CANCELLED": "cancelled",
+    "CANCELED": "cancelled",
+    "EXPIRED": "expired",
+}
+
+
+def cursor_json(api_key, path):
+    request = urllib.request.Request(
+        "https://api.cursor.com" + path,
+        headers={"Authorization": "Bearer " + api_key},
+    )
+    with urllib.request.urlopen(request, timeout=30) as response:
+        return json.loads(response.read().decode("utf-8"))
+
+
+def cloud_assistant_text(api_key, agent_id):
+    payload = cursor_json(api_key, "/v0/agents/" + urllib.parse.quote(agent_id) + "/conversation")
+    messages = payload.get("messages") if isinstance(payload, dict) else []
+    text = ""
+    for message in messages or []:
+        if not isinstance(message, dict) or message.get("type") != "assistant_message":
+            continue
+        body = message.get("text") or ""
+        if isinstance(body, str) and body.strip():
+            text = body.strip()
+    return text
+
+
+def await_cloud_agent(api_key, agent_id):
+    deadline = time.time() + 25 * 60
+    path = "/v0/agents/" + urllib.parse.quote(agent_id)
+    while True:
+        raw = ""
+        try:
+            detail = cursor_json(api_key, path)
+            raw = str(detail.get("status") or "").upper()
+        except Exception:
+            raw = ""
+        if raw in CLOUD_DONE:
+            text = ""
+            try:
+                text = cloud_assistant_text(api_key, agent_id)
+            except Exception:
+                text = ""
+            if not text:
+                text = "Agen cloud berstatus %s." % CLOUD_DONE[raw]
+            return CLOUD_DONE[raw], text
+        if time.time() >= deadline:
+            return "error", "Agen cloud belum selesai dalam 25 menit."
+        time.sleep(8)
+
+
 def run_agent(repo, prompt, mode, model, api_key):
     from cursor_sdk import Agent, CloudAgentOptions, CloudRepository
 
@@ -251,9 +306,12 @@ def run_agent(repo, prompt, mode, model, api_key):
             skip_reviewer_request=True,
         ),
     ) as agent:
-        run = agent.send(instructions)
-        result = run.wait()
-        usage = getattr(result, "usage", None)
+        agent.send(instructions)
+        agent_id = str(getattr(agent, "agent_id", "") or "")
+        if not agent_id:
+            raise RuntimeError("Agen cloud tidak mengembalikan id")
+        status, text = await_cloud_agent(api_key, agent_id)
+        usage = None
         charged = None
         try:
             billed = agent.get_usage()
@@ -263,8 +321,6 @@ def run_agent(repo, prompt, mode, model, api_key):
                 usage = billed.usage
         except Exception:
             charged = None
-        status = getattr(result, "status", "") or ""
-        text = getattr(result, "result", "") or ""
         return status, text, usage, charged
 
 
