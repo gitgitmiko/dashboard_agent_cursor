@@ -122,7 +122,7 @@ th { color: var(--muted); font-weight: 550; }
   align-items: end;
 }
 .inline-form { grid-template-columns: repeat(3, minmax(0, 1fr)) auto; }
-.form-grid { grid-template-columns: 1.5fr 0.6fr 1.5fr 1fr auto; margin-top: 0.4rem; }
+.form-grid { grid-template-columns: 1.6fr 0.7fr 1.1fr auto; margin-top: 0.4rem; }
 .inline-form .field, .form-grid .field { margin-top: 0; }
 @media (max-width: 1100px) {
   .split-3 { grid-template-columns: 1fr; gap: 0; }

@@ -66,8 +66,7 @@ function repoRows(repos, withRemove) {
   return (repos || []).map((repo) => {
     const row = [
       { label: "Repo", text: repo.full_name },
-      { label: "Branch", text: repo.branch },
-      { label: "Di STB", text: dash(repo.local_path) }
+      { label: "Branch", text: repo.branch }
     ];
     if (withRemove) {
       const remove = document.createElement("button");
@@ -116,7 +115,7 @@ async function refreshHome() {
   } else {
     job.hidden = true;
   }
-  fillTable(document.querySelector("#repos"), repoRows(data.repos, false), 3, "Belum ada repo. Tambah dari Pengaturan.");
+  fillTable(document.querySelector("#repos"), repoRows(data.repos, false), 2, "Belum ada repo. Tambah dari Pengaturan.");
   fillTable(
     document.querySelector("#runs"),
     (data.runs || []).map((run) => [
@@ -136,7 +135,7 @@ let settingsFilled = false;
 async function refreshSettings() {
   const data = await readDashboard();
   if (!data) return;
-  fillTable(document.querySelector("#repos"), repoRows(data.repos, true), 5, "Belum ada repo");
+  fillTable(document.querySelector("#repos"), repoRows(data.repos, true), 4, "Belum ada repo");
   if (!settingsFilled) {
     document.querySelector("#chat").value = data.chat_id || "";
     document.querySelector("#cursor-key").placeholder = data.cursor_ready ? "tersimpan " + data.cursor_hint : "belum diisi";
@@ -170,7 +169,6 @@ if (document.querySelector("#save")) {
       body: JSON.stringify({
         url: document.querySelector("#repo-url").value,
         branch: document.querySelector("#repo-branch").value,
-        local_path: document.querySelector("#repo-path").value,
         service: document.querySelector("#repo-service").value
       })
     });
@@ -178,7 +176,6 @@ if (document.querySelector("#save")) {
     showStatus("#repo-status", data.message || data.error, !response.ok);
     if (response.ok) {
       document.querySelector("#repo-url").value = "";
-      document.querySelector("#repo-path").value = "";
       document.querySelector("#repo-service").value = "";
       refreshSettings();
     }

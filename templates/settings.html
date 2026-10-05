@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex" />
 <meta name="csrf" content="{{ csrf }}" />
 <title>Pengaturan · Gitgitmiko</title>
-<link rel="stylesheet" href="/static/app.css?v=8" />
+<link rel="stylesheet" href="/static/app.css?v=10" />
 </head>
 <body>
 <header class="topbar">
@@ -88,11 +88,11 @@
   <section class="card">
     <div class="section-head">
       <h2>Repo agen</h2>
-      <p class="note">Hanya repo di daftar ini yang bisa dikerjakan dari Telegram. Di Telegram: pilih repo, pilih model, lalu kirim perintah.</p>
+      <p class="note">Hanya repo di daftar ini yang bisa dikerjakan dari Telegram. Repo baru langsung ditarik ke folder sesuai nama reponya. Di Telegram: pilih repo, pilih model, lalu kirim perintah.</p>
     </div>
     <div class="table-wrap">
       <table>
-        <thead><tr><th>Repo</th><th>Branch</th><th>Di STB</th><th>Layanan</th><th></th></tr></thead>
+        <thead><tr><th>Repo</th><th>Branch</th><th>Layanan</th><th></th></tr></thead>
         <tbody id="repos"></tbody>
       </table>
     </div>
@@ -106,10 +106,6 @@
         <input id="repo-branch" value="main" />
       </div>
       <div class="field">
-        <label for="repo-path">Path lokal di STB</label>
-        <input id="repo-path" placeholder="/home/gitgitmiko/harga-hbar" />
-      </div>
-      <div class="field">
         <label for="repo-service">Layanan setelah tarik</label>
         <input id="repo-service" placeholder="harga-hbar" />
       </div>
@@ -118,6 +114,6 @@
     <p class="note" id="repo-status" role="status"></p>
   </section>
 </main>
-<script src="/static/app.js?v=9"></script>
+<script src="/static/app.js?v=10"></script>
 </body>
 </html>

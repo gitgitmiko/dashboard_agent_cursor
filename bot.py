@@ -59,9 +59,8 @@ def repo_lines(repos):
         return "Belum ada repo terdaftar di dasbor."
     lines = ["Repo yang terdaftar:"]
     for index, repo in enumerate(repos, start=1):
-        where = repo.get("local_path") or "hanya di GitHub"
-        lines.append("%s. %s (%s) · %s" % (index, repo.get("full_name"), repo.get("branch") or "main", where))
-    lines.append("Pilih dengan /pilih nomor, lalu kirim perintah coding.")
+        lines.append("%s. %s (%s)" % (index, repo.get("full_name"), repo.get("branch") or "main"))
+    lines.append("Pilih dengan /pilih nomor, lalu pilih model.")
     return "\n".join(lines)
 
 
@@ -159,6 +158,62 @@ def pull_repo(repo, github_token):
     if completed.returncode != 0:
         return "Tarik kode gagal. " + output[-400:]
     return "Kode di STB sudah ditarik."
+
+
+def checkout_repo(repo):
+    import shutil
+
+    name = str(repo.get("name") or "")
+    path = Path("/home/gitgitmiko") / name
+    if path.as_posix() != "/home/gitgitmiko/" + name or name in ("harga-hbar", ".", ".."):
+        raise ValueError("nama repo itu tidak bisa dipakai")
+    token = str(store.get_config().get("github_token") or "").strip()
+    branch = repo.get("branch") or "main"
+    url = repo.get("url") or ""
+    created = not path.exists()
+    try:
+        if path.exists() and (path / ".git").is_dir():
+            origin = git_output(["git", "-C", str(path), "remote", "get-url", "origin"], token)
+            if not same_github(origin, url):
+                raise ValueError("nama repo itu sudah dipakai folder lain")
+            git_output(["git", "-C", str(path), "pull", "--ff-only", "origin", branch], token)
+            return
+        if path.exists():
+            raise ValueError("nama repo itu sudah dipakai folder lain")
+        git_output(["git", "clone", "--branch", branch, "--single-branch", url, str(path)], token)
+    except ValueError:
+        if created and path.exists():
+            shutil.rmtree(path, ignore_errors=True)
+        raise
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        if created and path.exists():
+            shutil.rmtree(path, ignore_errors=True)
+        raise ValueError("Kode belum berhasil ditarik.") from exc
+
+
+def same_github(left, right):
+    def norm(value):
+        text = str(value or "").strip().rstrip("/")
+        if text.endswith(".git"):
+            text = text[:-4]
+        return text.lower()
+
+    return norm(left) == norm(right)
+
+
+def git_output(command, github_token):
+    if github_token:
+        basic = base64.b64encode(("x-access-token:" + github_token).encode()).decode()
+        command = ["git", "-c", "http.extraheader=AUTHORIZATION: basic " + basic, *command[1:]]
+    env = os.environ.copy()
+    env["GIT_TERMINAL_PROMPT"] = "0"
+    completed = subprocess.run(command, capture_output=True, env=env, timeout=120)
+    output = redact(((completed.stdout or b"") + (completed.stderr or b"")).decode("utf-8", "replace")).strip()
+    if github_token:
+        output = output.replace(github_token, "[rahasia]")
+    if completed.returncode != 0:
+        raise ValueError("Kode belum berhasil ditarik.")
+    return output
 
 
 def restart_service(service):

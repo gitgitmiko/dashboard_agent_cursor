@@ -227,7 +227,6 @@ def public_view():
                 "full_name": repo.get("full_name") or "",
                 "url": repo.get("url") or "",
                 "branch": repo.get("branch") or "main",
-                "local_path": repo.get("local_path") or "",
                 "service": repo.get("service") or "",
             }
         )
@@ -273,13 +272,33 @@ def save_settings(incoming):
     return "Pengaturan disimpan"
 
 
+def automatic_path(name):
+    if name in ("harga-hbar", ".", "..") or not re.fullmatch(r"[A-Za-z0-9._-]{1,64}", name or ""):
+        raise ValueError("nama repo itu tidak bisa dipakai")
+    return "/home/gitgitmiko/" + name
+
+
+def draft_repo(incoming):
+    url, full_name, name = parse_github(incoming.get("url"))
+    branch = clean_branch(incoming.get("branch"))
+    service = clean_service(incoming.get("service"))
+    local_path = automatic_path(name)
+    if any(item.get("full_name") == full_name for item in get_config().get("repos") or []):
+        raise ValueError("repo itu sudah terdaftar")
+    return {
+        "name": name,
+        "full_name": full_name,
+        "url": url,
+        "branch": branch,
+        "local_path": local_path,
+        "service": service,
+    }
+
+
 def add_repo(incoming):
     import secrets as _secrets
 
-    url, full_name, name = parse_github(incoming.get("url"))
-    branch = clean_branch(incoming.get("branch"))
-    local_path = clean_path(incoming.get("local_path"))
-    service = clean_service(incoming.get("service"))
+    drafted = draft_repo(incoming)
     with lock:
         saved = load_json(CONFIG_PATH, default_config)
         cfg = default_config()
@@ -287,23 +306,23 @@ def add_repo(incoming):
         if isinstance(saved, dict):
             cfg.update(saved)
         repos = list(cfg.get("repos") or []) if had_repos else default_repos()
-        if any(item.get("full_name") == full_name for item in repos):
+        if any(item.get("full_name") == drafted["full_name"] for item in repos):
             raise ValueError("repo itu sudah terdaftar")
         repos.append(
             {
                 "id": _secrets.token_hex(4),
-                "name": name,
-                "full_name": full_name,
-                "url": url,
-                "branch": branch,
-                "local_path": local_path,
-                "service": service,
+                "name": drafted["name"],
+                "full_name": drafted["full_name"],
+                "url": drafted["url"],
+                "branch": drafted["branch"],
+                "local_path": drafted["local_path"],
+                "service": drafted["service"],
             }
         )
         cfg["repos"] = repos
         save_json(CONFIG_PATH, cfg)
         write_allowlist(repos)
-    return "Repo ditambahkan"
+    return "Repo ditambahkan dan kodenya sudah ditarik"
 
 
 def remove_repo(repo_id):

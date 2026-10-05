@@ -340,6 +340,8 @@ async def create_repo(request: Request):
     if incoming is None:
         return JSONResponse({"error": "permintaan tidak valid"}, status_code=400)
     try:
+        drafted = store.draft_repo(incoming)
+        bot.checkout_repo(drafted)
         return {"message": store.add_repo(incoming)}
     except ValueError as exc:
         return JSONResponse({"error": str(exc)}, status_code=400)
