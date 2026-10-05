@@ -237,6 +237,7 @@ def public_view():
         "runs": runs,
         "repos": repos,
         "selected_repo_id": state.get("selected_repo_id") or "",
+        "selected_model": state.get("selected_model") or "",
         "job": job,
         "model_mode": cfg.get("model_mode") or "auto",
         "custom_model": cfg.get("custom_model") or "composer-2.5",
@@ -251,12 +252,6 @@ def public_view():
 
 
 def save_settings(incoming):
-    mode = str(incoming.get("model_mode") or "auto").strip()
-    if mode not in ("auto", "custom"):
-        raise ValueError("pilih Auto atau model sendiri")
-    custom = str(incoming.get("custom_model") or "").strip()
-    if mode == "custom" and not re.fullmatch(r"[A-Za-z0-9._:-]{1,80}", custom or ""):
-        raise ValueError("isi id model, misalnya composer-2.5")
     chat = str(incoming.get("telegram_chat_id") or "").strip()
     if chat and not re.fullmatch(r"-?\d{1,20}", chat):
         raise ValueError("chat ID harus angka")
@@ -272,9 +267,6 @@ def save_settings(incoming):
                 cfg[field] = value
         if chat:
             cfg["telegram_chat_id"] = chat
-        cfg["model_mode"] = mode
-        if custom:
-            cfg["custom_model"] = custom
         if not had_repos:
             cfg.pop("repos", None)
         save_json(CONFIG_PATH, cfg)

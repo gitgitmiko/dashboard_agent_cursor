@@ -84,10 +84,11 @@ def help_text():
         [
             "Perintah dasbor Gitgitmiko:",
             "/repo — daftar repo yang terdaftar di web",
-            "/pilih 1 — pilih repo sebelum coding",
-            "/batal — lepaskan repo yang dipilih",
-            "/status — pekerjaan yang sedang berjalan",
-            "Setelah repo dipilih, kirim perintah biasa untuk memperbaiki bug, menambah fitur, lalu commit dan push.",
+            "/pilih 1 — pilih repo",
+            "/model — pilih ulang Auto atau custom",
+            "/batal — lepaskan repo dan model",
+            "/status — repo, model, dan pekerjaan yang sedang berjalan",
+            "Urutannya: pilih repo, pilih model, lalu kirim perintah coding.",
         ]
     )
 
@@ -212,11 +213,64 @@ def run_agent(repo, prompt, mode, model, api_key):
         return status, text, usage, charged
 
 
-def work(repo, prompt):
+def list_custom_models(api_key):
+    from cursor_sdk import Cursor
+
+    listed = Cursor.models.list(api_key=api_key)
+    if hasattr(listed, "models"):
+        listed = listed.models
+    skipped = {"auto", "auto-smart", "default"}
+    items = []
+    seen = set()
+    for model in listed or []:
+        model_id = str(getattr(model, "id", "") or "").strip()
+        if not model_id or model_id in skipped or model_id in seen:
+            continue
+        seen.add(model_id)
+        name = str(getattr(model, "display_name", "") or getattr(model, "name", "") or model_id).strip()
+        items.append({"id": model_id, "name": name or model_id})
+    return items[:40]
+
+
+def clear_selection(state):
+    state.update(
+        {
+            "selected_repo_id": "",
+            "model_step": "",
+            "selected_model": "",
+            "model_catalog": [],
+        }
+    )
+
+
+def ask_model_kind(repo):
+    return "\n".join(
+        [
+            "Repo dipilih: %s." % repo.get("full_name"),
+            "Pilih model:",
+            "1. Auto",
+            "2. Custom — daftar model di akun Cursor",
+            "Kirim 1 atau 2.",
+        ]
+    )
+
+
+def catalog_text(items):
+    lines = ["Model custom di akun Cursor:"]
+    for index, item in enumerate(items, start=1):
+        name = item.get("name") or item.get("id")
+        if name == item.get("id"):
+            lines.append("%s. %s" % (index, name))
+        else:
+            lines.append("%s. %s (%s)" % (index, name, item.get("id")))
+    lines.append("Kirim nomor model.")
+    return "\n".join(lines)
+
+
+def work(repo, prompt, model):
     cfg = store.get_config()
     api_key = str(cfg.get("cursor_api_key") or "").strip()
-    mode = "auto" if cfg.get("model_mode") != "custom" else "custom"
-    model = "auto" if mode == "auto" else (cfg.get("custom_model") or "composer-2.5")
+    mode = "auto" if model == "auto" else "custom"
     token = str(cfg.get("telegram_token") or "").strip()
     chat_id = str(cfg.get("telegram_chat_id") or "").strip()
     status = "error"
@@ -236,7 +290,12 @@ def work(repo, prompt):
     follow = ""
     if status not in ("error", "cancelled", "canceled", ""):
         follow = pull_repo(repo, str(cfg.get("github_token") or "").strip())
-    message = "Selesai di %s (%s).\n%s" % (repo.get("full_name"), status or "selesai", redact(summary)[:2500])
+    message = "Selesai di %s dengan %s (%s).\n%s" % (
+        repo.get("full_name"),
+        "Auto" if model == "auto" else model,
+        status or "selesai",
+        redact(summary)[:2500],
+    )
     if follow:
         message += "\n\n" + follow
     will_restart = status not in ("error", "cancelled", "canceled", "") and follow.startswith("Kode di STB") and repo.get("service")
@@ -262,35 +321,130 @@ def handle_message(text):
     if command in ("/repo", "/repos", "/daftar"):
         return repo_lines(repos)
     if command == "/batal":
-        store.update_state(lambda state: state.update({"selected_repo_id": ""}))
-        return "Repo yang dipilih dilepas. Kirim /repo untuk melihat daftar."
+        store.update_state(clear_selection)
+        return "Repo dan model dilepas. Kirim /repo untuk melihat daftar."
     if command == "/status":
-        job = state.get("job") if isinstance(state.get("job"), dict) else None
-        if not job:
-            return "Tidak ada pekerjaan yang sedang berjalan."
-        return "Sedang mengerjakan %s sejak %s." % (job.get("repo") or "repo", job.get("since") or "")
+        return status_text(repos, state)
     if command == "/pilih":
-        parts = cleaned.split(maxsplit=1)
-        if len(parts) < 2:
-            return "Contoh: /pilih 1"
-        repo = find_repo(repos, parts[1])
-        if not repo:
-            return "Repo itu tidak ada di daftar.\n" + repo_lines(repos)
-        store.update_state(lambda state: state.update({"selected_repo_id": repo.get("id") or ""}))
-        return "Repo dipilih: %s. Kirim perintah coding sekarang." % repo.get("full_name")
+        return choose_repo(repos, cleaned)
+    if command == "/model":
+        return reopen_model(repos, state)
     if command.startswith("/"):
         return "Perintah tidak dikenal.\n" + help_text()
     selected = next((repo for repo in repos if repo.get("id") == state.get("selected_repo_id")), None)
     if not selected:
         return "Pilih repo dulu.\n" + repo_lines(repos)
+    step = state.get("model_step") or "kind"
+    if step == "kind":
+        return choose_model_kind(selected, cleaned, cfg)
+    if step == "catalog":
+        return choose_catalog_model(cleaned, state)
     if len(cleaned) > 4000:
         return "Perintah terlalu panjang. Maksimal 4000 karakter."
+    model = state.get("selected_model") or ""
+    if not model:
+        return ask_model_kind(selected)
+    return start_job(selected, cleaned, model)
+
+
+def status_text(repos, state):
+    selected = next((repo for repo in repos if repo.get("id") == state.get("selected_repo_id")), None)
+    lines = ["Repo: %s." % (selected.get("full_name") if selected else "belum dipilih")]
+    model = state.get("selected_model") or ""
+    if state.get("model_step") == "ready" and model:
+        lines.append("Model: %s." % ("Auto" if model == "auto" else model))
+    else:
+        lines.append("Model: belum dipilih.")
+    job = state.get("job") if isinstance(state.get("job"), dict) else None
+    if job:
+        lines.append("Sedang mengerjakan %s sejak %s." % (job.get("repo") or "repo", job.get("since") or ""))
+    else:
+        lines.append("Tidak ada pekerjaan yang sedang berjalan.")
+    return "\n".join(lines)
+
+
+def choose_repo(repos, cleaned):
+    parts = cleaned.split(maxsplit=1)
+    if len(parts) < 2:
+        return "Contoh: /pilih 1"
+    repo = find_repo(repos, parts[1])
+    if not repo:
+        return "Repo itu tidak ada di daftar.\n" + repo_lines(repos)
+    store.update_state(
+        lambda state, repo_id=repo.get("id") or "": state.update(
+            {
+                "selected_repo_id": repo_id,
+                "model_step": "kind",
+                "selected_model": "",
+                "model_catalog": [],
+            }
+        )
+    )
+    return ask_model_kind(repo)
+
+
+def reopen_model(repos, state):
+    selected = next((repo for repo in repos if repo.get("id") == state.get("selected_repo_id")), None)
+    if not selected:
+        return "Pilih repo dulu.\n" + repo_lines(repos)
+    store.update_state(
+        lambda current: current.update({"model_step": "kind", "selected_model": "", "model_catalog": []})
+    )
+    return ask_model_kind(selected)
+
+
+def choose_model_kind(repo, cleaned, cfg):
+    answer = cleaned.lower()
+    if answer in ("1", "auto"):
+        store.update_state(
+            lambda state: state.update({"model_step": "ready", "selected_model": "auto", "model_catalog": []})
+        )
+        return "Model: Auto. Kirim perintah coding sekarang."
+    if answer in ("2", "custom"):
+        api_key = str(cfg.get("cursor_api_key") or "").strip()
+        if not api_key:
+            return "API key Cursor belum diisi di Pengaturan."
+        try:
+            items = list_custom_models(api_key)
+        except Exception as exc:
+            return "Daftar model Cursor belum bisa diambil. " + redact(exc)
+        if not items:
+            return "Akun Cursor ini belum punya model custom. Pilih 1 untuk Auto."
+        store.update_state(
+            lambda state, items=items: state.update({"model_step": "catalog", "model_catalog": items, "selected_model": ""})
+        )
+        return catalog_text(items)
+    return ask_model_kind(repo)
+
+
+def choose_catalog_model(cleaned, state):
+    items = state.get("model_catalog") if isinstance(state.get("model_catalog"), list) else []
+    if not cleaned.isdigit():
+        return "Kirim nomor model.\n" + catalog_text(items)
+    index = int(cleaned) - 1
+    if index < 0 or index >= len(items):
+        return "Nomor itu tidak ada.\n" + catalog_text(items)
+    chosen = items[index]
+    store.update_state(
+        lambda current, model_id=chosen.get("id") or "": current.update(
+            {"model_step": "ready", "selected_model": model_id, "model_catalog": []}
+        )
+    )
+    return "Model: %s. Kirim perintah coding sekarang." % (chosen.get("name") or chosen.get("id"))
+
+
+def start_job(selected, cleaned, model):
     claimed = {"ok": False}
 
     def claim(current):
         if isinstance(current.get("job"), dict):
             return
-        current["job"] = {"repo": selected.get("full_name"), "since": now_wib(), "prompt": cleaned[:160]}
+        current["job"] = {
+            "repo": selected.get("full_name"),
+            "model": "Auto" if model == "auto" else model,
+            "since": now_wib(),
+            "prompt": cleaned[:160],
+        }
         claimed["ok"] = True
 
     with job_lock:
@@ -299,8 +453,9 @@ def handle_message(text):
         store.update_state(claim)
     if not claimed["ok"]:
         return "Masih ada pekerjaan yang berjalan. Tunggu sampai selesai."
-    threading.Thread(target=work, args=(selected, cleaned), daemon=True).start()
-    return "Menggarap %s. Hasilnya dikirim ke sini setelah agen selesai." % selected.get("full_name")
+    threading.Thread(target=work, args=(selected, cleaned, model), daemon=True).start()
+    label = "Auto" if model == "auto" else model
+    return "Menggarap %s dengan %s. Hasilnya dikirim ke sini setelah agen selesai." % (selected.get("full_name"), label)
 
 
 def skip_old_messages(token):

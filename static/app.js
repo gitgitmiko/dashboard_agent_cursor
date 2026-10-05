@@ -91,6 +91,12 @@ function repoRows(repos, withRemove) {
   });
 }
 
+function modelLine(model) {
+  if (model === "auto") return "model Auto";
+  if (model) return "model " + model;
+  return "model belum dipilih";
+}
+
 async function refreshHome() {
   const data = await readDashboard();
   if (!data) return;
@@ -102,7 +108,7 @@ async function refreshHome() {
     data.cursor_ready ? "Cursor tersimpan" : "Cursor belum diisi",
     data.telegram_ready ? "Telegram tersambung" : "Telegram belum lengkap"
   ];
-  document.querySelector("#ready").textContent = ready.join(" · ") + (data.model_mode === "custom" ? " · model " + data.custom_model : " · model Auto");
+  document.querySelector("#ready").textContent = ready.join(" · ") + " · " + modelLine(data.selected_model);
   const job = document.querySelector("#job");
   if (data.job) {
     job.hidden = false;
@@ -133,8 +139,6 @@ async function refreshSettings() {
   fillTable(document.querySelector("#repos"), repoRows(data.repos, true), 5, "Belum ada repo");
   if (!settingsFilled) {
     document.querySelector("#chat").value = data.chat_id || "";
-    document.querySelector("#model-mode").value = data.model_mode || "auto";
-    document.querySelector("#custom-model").value = data.custom_model || "";
     document.querySelector("#cursor-key").placeholder = data.cursor_ready ? "tersimpan " + data.cursor_hint : "belum diisi";
     document.querySelector("#token").placeholder = data.telegram_ready ? "tersimpan " + data.telegram_hint : "belum diisi";
     document.querySelector("#github-token").placeholder = data.github_ready ? "tersimpan " + data.github_hint : "opsional";
@@ -187,9 +191,7 @@ if (document.querySelector("#save")) {
         cursor_api_key: document.querySelector("#cursor-key").value,
         telegram_token: document.querySelector("#token").value,
         telegram_chat_id: document.querySelector("#chat").value,
-        github_token: document.querySelector("#github-token").value,
-        model_mode: document.querySelector("#model-mode").value,
-        custom_model: document.querySelector("#custom-model").value
+        github_token: document.querySelector("#github-token").value
       })
     });
     const data = await response.json();

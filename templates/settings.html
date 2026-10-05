@@ -22,8 +22,8 @@
 <main>
   <section class="card">
     <div class="section-head">
-      <h2>Kunci dan model</h2>
-      <p class="note">Kolom rahasia yang dikosongkan tetap memakai nilai yang sudah tersimpan. Repo GitHub perlu terhubung ke akun Cursor yang sama supaya agen cloud bisa push.</p>
+      <h2>Kunci</h2>
+      <p class="note">Kolom rahasia yang dikosongkan tetap memakai nilai yang sudah tersimpan. Repo GitHub perlu terhubung ke akun Cursor yang sama supaya agen cloud bisa push. Model dipilih di Telegram setelah repo.</p>
     </div>
     <div class="split-3">
       <div>
@@ -31,20 +31,7 @@
         <div class="field">
           <label for="cursor-key">API key</label>
           <input id="cursor-key" type="password" autocomplete="off" />
-          <p class="hint">Dari Dashboard Cursor, bagian API Keys.</p>
-        </div>
-        <div class="pair">
-          <div class="field">
-            <label for="model-mode">Model</label>
-            <select id="model-mode">
-              <option value="auto">Auto</option>
-              <option value="custom">Model sendiri</option>
-            </select>
-          </div>
-          <div class="field">
-            <label for="custom-model">Id model sendiri</label>
-            <input id="custom-model" placeholder="composer-2.5" />
-          </div>
+          <p class="hint">Dari Dashboard Cursor, bagian API Keys. Model Auto atau custom dipilih di Telegram.</p>
         </div>
       </div>
       <div>
@@ -71,7 +58,7 @@
     </div>
     <div class="section-foot">
       <p class="note" id="credential-status" role="status"></p>
-      <button type="button" id="save">Simpan kunci dan model</button>
+      <button type="button" id="save">Simpan kunci</button>
     </div>
   </section>
 
@@ -101,7 +88,7 @@
   <section class="card">
     <div class="section-head">
       <h2>Repo agen</h2>
-      <p class="note">Hanya repo di daftar ini yang bisa dikerjakan dari Telegram. Pilih repo di Telegram dengan /pilih, lalu kirim perintah coding.</p>
+      <p class="note">Hanya repo di daftar ini yang bisa dikerjakan dari Telegram. Di Telegram: pilih repo, pilih model, lalu kirim perintah.</p>
     </div>
     <div class="table-wrap">
       <table>
@@ -131,6 +118,6 @@
     <p class="note" id="repo-status" role="status"></p>
   </section>
 </main>
-<script src="/static/app.js?v=8"></script>
+<script src="/static/app.js?v=9"></script>
 </body>
 </html>
