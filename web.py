@@ -3,7 +3,6 @@ import hmac
 import secrets
 import time
 from contextlib import asynccontextmanager
-from pathlib import Path
 
 from fastapi import FastAPI, Form, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
@@ -11,28 +10,26 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 
-import engine
+import bot
+import store
 
-ROOT = Path(__file__).resolve().parent
-templates = Jinja2Templates(directory=str(ROOT / "templates"))
+templates = Jinja2Templates(directory=str(store.ROOT / "templates"))
 SESSION_COOKIE = "hb_session"
 FORM_COOKIE = "hb_form"
 SESSION_MAX_AGE = 60 * 60 * 12
 PASSWORD_MIN = 10
 PASSWORD_MAX = 128
-FAIL_WINDOW = 900
-FAIL_LIMIT = 8
 failures = {}
 
 
 @asynccontextmanager
 async def lifespan(_app):
-    engine.start_background()
+    bot.start_background()
     yield
 
 
 app = FastAPI(lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None)
-app.mount("/static", StaticFiles(directory=str(ROOT / "static")), name="static")
+app.mount("/static", StaticFiles(directory=str(store.ROOT / "static")), name="static")
 
 
 @app.middleware("http")
@@ -46,13 +43,14 @@ async def security_headers(request, call_next):
         "default-src 'self'; script-src 'self'; style-src 'self'; "
         "img-src 'self' data:; frame-ancestors 'none'; base-uri 'none'; form-action 'self'"
     )
-    if request.url.path.startswith("/api") or response.media_type == "text/html":
+    content_type = response.headers.get("content-type", "")
+    if request.url.path.startswith("/api") or response.media_type == "text/html" or content_type.startswith("text/html"):
         response.headers["Cache-Control"] = "no-store"
     return response
 
 
 def serializer():
-    return URLSafeTimedSerializer(engine.ensure_secrets(), salt="hb-session")
+    return URLSafeTimedSerializer(store.ensure_secrets(), salt="hb-session")
 
 
 def hash_password(password):
@@ -80,7 +78,7 @@ def verify_password(password, stored):
 
 
 def has_password():
-    return bool(engine.get_config().get("password_hash"))
+    return bool(store.get_config().get("password_hash"))
 
 
 def client_key(request):
@@ -94,9 +92,9 @@ def client_key(request):
 
 def locked_out(key):
     now = time.time()
-    recent = [stamp for stamp in failures.get(key, []) if now - stamp < FAIL_WINDOW]
+    recent = [stamp for stamp in failures.get(key, []) if now - stamp < 900]
     failures[key] = recent
-    return len(recent) >= FAIL_LIMIT
+    return len(recent) >= 8
 
 
 def mark_failure(key):
@@ -175,10 +173,7 @@ def form_token_ok(request, submitted):
 
 
 def require_session(request):
-    session = read_session(request)
-    if not session:
-        return None
-    return session
+    return read_session(request)
 
 
 def require_csrf(request, session):
@@ -198,11 +193,36 @@ def check_password_rules(password, confirm):
 
 def store_password(password):
     digest = hash_password(password)
-    with engine.lock:
-        cfg = engine.default_config()
-        cfg.update(engine.load_json(engine.CONFIG_PATH, engine.default_config))
+    with store.lock:
+        saved = store.load_json(store.CONFIG_PATH, store.default_config)
+        cfg = store.default_config()
+        if isinstance(saved, dict):
+            cfg.update(saved)
+        had_repos = isinstance(saved, dict) and "repos" in saved
         cfg["password_hash"] = digest
-        engine.save_json(engine.CONFIG_PATH, cfg)
+        if not had_repos:
+            cfg.pop("repos", None)
+        store.save_json(store.CONFIG_PATH, cfg)
+
+
+def guard(request):
+    session = require_session(request)
+    if not session:
+        return None, JSONResponse({"error": "masuk dulu"}, status_code=401)
+    denied = require_csrf(request, session)
+    if denied:
+        return None, denied
+    return session, None
+
+
+async def read_json(request):
+    try:
+        incoming = await request.json()
+    except Exception:
+        return None
+    if not isinstance(incoming, dict):
+        return None
+    return incoming
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -253,12 +273,11 @@ def login_submit(request: Request, password: str = Form(""), csrf: str = Form(""
     if not has_password():
         return RedirectResponse("/setup", status_code=303)
     key = client_key(request)
-    token_ok = form_token_ok(request, csrf)
-    if not token_ok:
+    if not form_token_ok(request, csrf):
         return render_login(request, "login", "Halaman kedaluwarsa. Muat ulang, lalu coba lagi.", 401)
     if locked_out(key):
         return render_login(request, "login", "Terlalu banyak percobaan. Tunggu 15 menit.", 429)
-    if not verify_password(password, engine.get_config().get("password_hash")):
+    if not verify_password(password, store.get_config().get("password_hash")):
         mark_failure(key)
         return render_login(request, "login", "Kata sandi salah.", 401)
     clear_failures(key)
@@ -280,74 +299,79 @@ def logout(request: Request):
     return response
 
 
-@app.get("/api/status")
-def status(request: Request):
+@app.get("/api/dashboard")
+def dashboard(request: Request):
     session = require_session(request)
     if not session:
         return JSONResponse({"error": "masuk dulu"}, status_code=401)
-    return engine.public_status()
-
-
-@app.get("/api/klines")
-def klines(request: Request, interval: str = "1h"):
-    session = require_session(request)
-    if not session:
-        return JSONResponse({"error": "masuk dulu"}, status_code=401)
-    try:
-        return {"interval": interval, "candles": engine.fetch_klines(interval)}
-    except Exception as exc:
-        return JSONResponse({"error": str(exc)}, status_code=400)
+    return store.public_view()
 
 
 @app.post("/api/settings")
 async def settings(request: Request):
-    session = require_session(request)
-    if not session:
-        return JSONResponse({"error": "masuk dulu"}, status_code=401)
-    denied = require_csrf(request, session)
+    _session, denied = guard(request)
     if denied:
         return denied
-    try:
-        incoming = await request.json()
-    except Exception:
+    incoming = await read_json(request)
+    if incoming is None:
         return JSONResponse({"error": "permintaan tidak valid"}, status_code=400)
     try:
-        message = engine.save_settings(incoming if isinstance(incoming, dict) else {})
-    except Exception as exc:
+        return {"message": store.save_settings(incoming)}
+    except ValueError as exc:
         return JSONResponse({"error": str(exc)}, status_code=400)
-    return {"message": message}
+
+
+@app.post("/api/repos")
+async def create_repo(request: Request):
+    _session, denied = guard(request)
+    if denied:
+        return denied
+    incoming = await read_json(request)
+    if incoming is None:
+        return JSONResponse({"error": "permintaan tidak valid"}, status_code=400)
+    try:
+        return {"message": store.add_repo(incoming)}
+    except ValueError as exc:
+        return JSONResponse({"error": str(exc)}, status_code=400)
+
+
+@app.post("/api/repos/remove")
+async def delete_repo(request: Request):
+    _session, denied = guard(request)
+    if denied:
+        return denied
+    incoming = await read_json(request)
+    if incoming is None:
+        return JSONResponse({"error": "permintaan tidak valid"}, status_code=400)
+    try:
+        return {"message": store.remove_repo(str(incoming.get("id") or ""))}
+    except ValueError as exc:
+        return JSONResponse({"error": str(exc)}, status_code=400)
 
 
 @app.post("/api/test-telegram")
 def test_telegram(request: Request):
-    session = require_session(request)
-    if not session:
-        return JSONResponse({"error": "masuk dulu"}, status_code=401)
-    denied = require_csrf(request, session)
+    _session, denied = guard(request)
     if denied:
         return denied
     try:
-        return {"message": engine.send_test_message()}
+        return {"message": bot.send_test_message()}
     except Exception as exc:
-        return JSONResponse({"error": str(exc)}, status_code=400)
+        return JSONResponse({"error": bot.redact(exc)}, status_code=400)
 
 
 @app.post("/api/password")
 async def change_password(request: Request):
-    session = require_session(request)
-    if not session:
-        return JSONResponse({"error": "masuk dulu"}, status_code=401)
-    denied = require_csrf(request, session)
+    _session, denied = guard(request)
     if denied:
         return denied
-    try:
-        incoming = await request.json()
-    except Exception:
+    incoming = await read_json(request)
+    if incoming is None:
         return JSONResponse({"error": "permintaan tidak valid"}, status_code=400)
-    current = str((incoming or {}).get("current") or "")
-    new = str((incoming or {}).get("new") or "")
-    confirm = str((incoming or {}).get("confirm") or "")
-    if not verify_password(current, engine.get_config().get("password_hash")):
+    current = str(incoming.get("current") or "")
+    new = str(incoming.get("new") or "")
+    confirm = str(incoming.get("confirm") or "")
+    if not verify_password(current, store.get_config().get("password_hash")):
         return JSONResponse({"error": "kata sandi sekarang salah"}, status_code=400)
     try:
         check_password_rules(new, confirm)

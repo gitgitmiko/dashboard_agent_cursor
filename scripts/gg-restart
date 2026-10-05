@@ -1,0 +1,10 @@
+#!/bin/sh
+set -eu
+name=${1:-}
+printf '%s' "$name" | grep -Eq '^[A-Za-z0-9_.@-]{1,64}$' || exit 2
+case "$name" in
+  ssh|sshd|mysql|mariadb|postgresql|apache2|httpd|cloudflared|cron) exit 3 ;;
+esac
+allow=/home/gitgitmiko/harga-hbar/restart.allow
+grep -qx -- "$name" "$allow" || exit 4
+exec /bin/systemctl restart "$name"

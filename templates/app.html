@@ -5,14 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="robots" content="noindex" />
 <meta name="csrf" content="{{ csrf }}" />
-<title>Pemantau</title>
-<link rel="stylesheet" href="/static/app.css?v=6" />
+<title>Gitgitmiko</title>
+<link rel="stylesheet" href="/static/app.css?v=7" />
 </head>
 <body>
 <header class="topbar">
   <div>
-    <p class="brand">Pemantau</p>
-    <h1 id="pair-title">Memuat…</h1>
+    <p class="brand">Gitgitmiko</p>
+    <h1>Dasbor agen</h1>
   </div>
   <div class="top-actions">
     <button type="button" id="open-settings" class="ghost">Pengaturan</button>
@@ -20,148 +20,49 @@
   </div>
 </header>
 <main>
-  <section class="hero">
-    <p class="price" id="price">…</p>
-    <p class="meta" id="meta">Mengambil harga dari Tokocrypto…</p>
-    <div class="chips" id="chips"></div>
-  </section>
+  <p class="meta" id="ready">Memuat…</p>
+  <p class="status" id="job" hidden></p>
   <section class="grid">
-    <article class="card is-collapsed" id="card-total">
-      <h2>
-        <button type="button" class="card-toggle" aria-expanded="false" aria-controls="card-total-body">
-          <span>Total aset</span>
-          <span class="chevron" aria-hidden="true"></span>
-        </button>
-      </h2>
-      <div class="card-body" id="card-total-body">
-        <p class="amount" id="total-idr">…</p>
-        <p class="meta" id="idr-rate">Menghitung kurs…</p>
-      </div>
+    <article class="card">
+      <h2>Token Auto</h2>
+      <p class="amount" id="auto-tokens">…</p>
+      <p class="meta" id="auto-meta">Model yang dipilih router Cursor</p>
     </article>
-    <article class="card is-collapsed" id="card-plan">
-      <h2>
-        <button type="button" class="card-toggle" aria-expanded="false" aria-controls="card-plan-body">
-          <span>Rencana posisi</span>
-          <span class="chevron" aria-hidden="true"></span>
-        </button>
-      </h2>
-      <div class="card-body" id="card-plan-body">
-        <p class="status" id="plan-status">Menghitung rencana…</p>
-        <ul class="plan" id="plan-detail"></ul>
-      </div>
+    <article class="card">
+      <h2>Token custom</h2>
+      <p class="amount" id="custom-tokens">…</p>
+      <p class="meta" id="custom-meta">Model yang dipilih sendiri</p>
     </article>
   </section>
-  <section class="card is-collapsed" id="card-chart">
-    <h2>
-      <button type="button" class="card-toggle" aria-expanded="false" aria-controls="card-chart-body">
-        <span>Grafik</span>
-        <span class="chevron" aria-hidden="true"></span>
-      </button>
-    </h2>
-    <div class="card-body" id="card-chart-body">
-      <div class="timeframes" id="timeframes">
-        <button type="button" data-interval="15m">15 mnt</button>
-        <button type="button" data-interval="1h" class="active">1 jam</button>
-        <button type="button" data-interval="4h">4 jam</button>
-        <button type="button" data-interval="1d">1 hari</button>
-        <button type="button" data-interval="1w">1 minggu</button>
-      </div>
-      <div class="chart-wrap">
-        <svg id="chart" class="chart" viewBox="0 0 800 340" role="img" aria-label="Grafik harga"></svg>
-        <div id="chart-tip" class="chart-tip" hidden></div>
-      </div>
-      <p class="note" id="chart-note">Memuat grafik…</p>
+  <section class="card">
+    <h2>Repo agen</h2>
+    <p class="note">Hanya repo di daftar ini yang bisa dikerjakan dari Telegram. Pilih repo di Telegram dengan /pilih, lalu kirim perintah coding.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Repo</th><th>Branch</th><th>Di STB</th><th></th></tr></thead>
+        <tbody id="repos"></tbody>
+      </table>
     </div>
+    <p class="note" id="page-status" role="status"></p>
+    <form id="repo-form">
+      <label for="repo-url">Repo GitHub</label>
+      <input id="repo-url" placeholder="gitgitmiko/dashboard_agent_cursor" required />
+      <label for="repo-branch">Branch</label>
+      <input id="repo-branch" value="main" />
+      <label for="repo-path">Path lokal di STB, kalau kode perlu ditarik ke sini</label>
+      <input id="repo-path" placeholder="/home/gitgitmiko/harga-hbar" />
+      <label for="repo-service">Layanan systemd yang dijalankan ulang setelah tarik</label>
+      <input id="repo-service" placeholder="harga-hbar" />
+      <button type="submit">Tambah repo</button>
+    </form>
   </section>
-  <section class="card is-collapsed" id="card-notices">
-    <h2>
-      <button type="button" class="card-toggle" aria-expanded="false" aria-controls="card-notices-body">
-        <span>Riwayat notifikasi</span>
-        <span class="chevron" aria-hidden="true"></span>
-      </button>
-    </h2>
-    <div class="card-body" id="card-notices-body">
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>Waktu</th><th>Status</th><th>Pesan</th></tr></thead>
-          <tbody id="notifications"></tbody>
-        </table>
-      </div>
-    </div>
-  </section>
-  <section class="card is-collapsed" id="card-fees">
-    <h2>
-      <button type="button" class="card-toggle" aria-expanded="false" aria-controls="card-fees-body">
-        <span>Biaya trading</span>
-        <span class="chevron" aria-hidden="true"></span>
-      </button>
-    </h2>
-    <div class="card-body" id="card-fees-body">
-      <p class="meta" id="fees">Mengambil data akun…</p>
-    </div>
-  </section>
-  <section class="card is-collapsed" id="card-balances">
-    <h2>
-      <button type="button" class="card-toggle" aria-expanded="false" aria-controls="card-balances-body">
-        <span>Saldo spot</span>
-        <span class="chevron" aria-hidden="true"></span>
-      </button>
-    </h2>
-    <div class="card-body" id="card-balances-body">
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>Aset</th><th>Bebas</th><th>Terkunci</th><th>Perkiraan USDT</th><th>Perkiraan IDR</th></tr></thead>
-          <tbody id="balances"></tbody>
-        </table>
-      </div>
-    </div>
-  </section>
-  <section class="card is-collapsed" id="card-open-orders">
-    <h2>
-      <button type="button" class="card-toggle" aria-expanded="false" aria-controls="card-open-orders-body">
-        <span id="open-orders-title">Order terbuka</span>
-        <span class="chevron" aria-hidden="true"></span>
-      </button>
-    </h2>
-    <div class="card-body" id="card-open-orders-body">
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>Waktu</th><th>Sisi</th><th>Tipe</th><th>Harga</th><th>Jumlah</th><th>Terisi</th><th>Status</th></tr></thead>
-          <tbody id="open-orders"></tbody>
-        </table>
-      </div>
-    </div>
-  </section>
-  <section class="card is-collapsed" id="card-orders">
-    <h2>
-      <button type="button" class="card-toggle" aria-expanded="false" aria-controls="card-orders-body">
-        <span id="order-history-title">Riwayat order</span>
-        <span class="chevron" aria-hidden="true"></span>
-      </button>
-    </h2>
-    <div class="card-body" id="card-orders-body">
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>Waktu</th><th>Sisi</th><th>Tipe</th><th>Harga</th><th>Jumlah</th><th>Terisi</th><th>Status</th></tr></thead>
-          <tbody id="order-history"></tbody>
-        </table>
-      </div>
-    </div>
-  </section>
-  <section class="card is-collapsed" id="card-trades">
-    <h2>
-      <button type="button" class="card-toggle" aria-expanded="false" aria-controls="card-trades-body">
-        <span id="trades-title">Riwayat transaksi</span>
-        <span class="chevron" aria-hidden="true"></span>
-      </button>
-    </h2>
-    <div class="card-body" id="card-trades-body">
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>Waktu</th><th>Sisi</th><th>Harga</th><th>Jumlah</th><th id="trade-total">Total</th><th>Biaya</th></tr></thead>
-          <tbody id="trades"></tbody>
-        </table>
-      </div>
+  <section class="card">
+    <h2>Pekerjaan terakhir</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Waktu</th><th>Repo</th><th>Mode</th><th>Token</th><th>Status</th></tr></thead>
+        <tbody id="runs"></tbody>
+      </table>
     </div>
   </section>
 </main>
@@ -171,34 +72,32 @@
     <button type="button" id="close-settings" class="ghost">Tutup</button>
   </div>
   <section>
-    <h3>Pair</h3>
-    <label for="pair">Pair trading</label>
-    <input id="pair" placeholder="HBAR/USDT" />
-    <p class="note">Contoh BNB/USDT. Grafik, harga, rencana, dan riwayat order ikut berubah. Batas harga dikosongkan saat pair diganti.</p>
-  </section>
-  <section>
-    <h3>Batas harga</h3>
-    <label for="above">Beri tahu jika harga naik ke</label>
-    <input id="above" inputmode="decimal" placeholder="kosongkan jika tidak dipakai" />
-    <label for="below">Beri tahu jika harga turun ke</label>
-    <input id="below" inputmode="decimal" placeholder="kosongkan jika tidak dipakai" />
-  </section>
-  <section>
-    <h3>API Tokocrypto</h3>
-    <p class="note">Kunci hanya disimpan di server ini. Kosongkan jika tidak ingin mengganti. Jangan gunakan kunci yang punya izin tarik dana.</p>
-    <label for="api-key">API key</label>
-    <input id="api-key" type="password" autocomplete="off" />
-    <label for="api-secret">Secret key</label>
-    <input id="api-secret" type="password" autocomplete="off" />
+    <h3>Cursor</h3>
+    <p class="note">API key dari Dashboard Cursor. Kosongkan jika tidak ingin mengganti. Repo GitHub juga perlu terhubung ke akun Cursor yang sama supaya agen cloud bisa push.</p>
+    <label for="cursor-key">API key Cursor</label>
+    <input id="cursor-key" type="password" autocomplete="off" />
+    <label for="model-mode">Model</label>
+    <select id="model-mode">
+      <option value="auto">Auto</option>
+      <option value="custom">Model sendiri</option>
+    </select>
+    <label for="custom-model">Id model sendiri</label>
+    <input id="custom-model" placeholder="composer-2.5" />
   </section>
   <section>
     <h3>Telegram</h3>
-    <p class="note">Token dari BotFather dan chat ID Anda. Kosongkan token jika tidak ingin menggantinya.</p>
+    <p class="note">Hanya chat ID ini yang boleh memberi perintah. Kosongkan token jika tidak ingin menggantinya.</p>
     <label for="token">Token bot</label>
     <input id="token" type="password" autocomplete="off" />
     <label for="chat">Chat ID</label>
     <input id="chat" inputmode="numeric" autocomplete="off" />
     <button type="button" id="test" class="ghost">Kirim pesan percobaan</button>
+  </section>
+  <section>
+    <h3>GitHub</h3>
+    <p class="note">Dipakai hanya saat STB menarik repo privat. Kosongkan jika tidak ingin mengganti.</p>
+    <label for="github-token">Token GitHub</label>
+    <input id="github-token" type="password" autocomplete="off" />
   </section>
   <section>
     <h3>Kata sandi</h3>
@@ -215,6 +114,6 @@
   </div>
   <p class="note" id="status" role="status"></p>
 </dialog>
-<script src="/static/app.js?v=5"></script>
+<script src="/static/app.js?v=7"></script>
 </body>
 </html>

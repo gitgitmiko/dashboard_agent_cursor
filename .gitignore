@@ -1,5 +1,6 @@
 config.json
 state.json
+restart.allow
 .venv/
 __pycache__/
 *.pyc

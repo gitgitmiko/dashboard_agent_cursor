@@ -5,14 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="robots" content="noindex" />
 <title>{% if mode == "setup" %}Buat kata sandi{% else %}Masuk{% endif %}</title>
-<link rel="stylesheet" href="/static/app.css?v=6" />
+<link rel="stylesheet" href="/static/app.css?v=7" />
 </head>
 <body class="gate">
 <main class="gate-card">
-  <p class="brand">Pemantau</p>
+  <p class="brand">Gitgitmiko</p>
   {% if mode == "setup" %}
   <h1>Buat kata sandi</h1>
-  <p class="lead">Halaman ini menampilkan saldo dan kunci API. Kata sandi membuatnya tidak terbuka untuk semua orang di jaringan yang sama.</p>
+  <p class="lead">Dasbor ini menyimpan kunci API. Kata sandi membuatnya tidak terbuka untuk semua orang di jaringan yang sama.</p>
   <form method="post" action="/setup">
     <input type="hidden" name="csrf" value="{{ form_csrf }}" />
     <label for="password">Kata sandi baru</label>
@@ -23,7 +23,7 @@
   </form>
   {% else %}
   <h1>Masuk</h1>
-  <p class="lead">Gunakan kata sandi yang Anda buat di perangkat ini.</p>
+  <p class="lead">Gunakan kata sandi dasbor di perangkat ini.</p>
   <form method="post" action="/login">
     <input type="hidden" name="csrf" value="{{ form_csrf }}" />
     <label for="password">Kata sandi</label>
