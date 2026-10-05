@@ -1,22 +1,10 @@
 const csrf = document.querySelector('meta[name="csrf"]').content;
-const statusEl = document.querySelector("#status");
-const cursorEl = document.querySelector("#cursor-key");
-const tokenEl = document.querySelector("#token");
-const chatEl = document.querySelector("#chat");
-const githubEl = document.querySelector("#github-token");
-const modeEl = document.querySelector("#model-mode");
-const customEl = document.querySelector("#custom-model");
-let filled = false;
 
-function showStatus(text, isError) {
-  statusEl.textContent = text || "";
-  statusEl.className = isError ? "err" : "note";
-}
-
-function showPageStatus(text, isError) {
-  const page = document.querySelector("#page-status");
-  page.textContent = text || "";
-  page.className = isError ? "err" : "note";
+function showStatus(id, text, isError) {
+  const el = document.querySelector(id);
+  if (!el) return;
+  el.textContent = text || "";
+  el.className = isError ? "err" : "note";
 }
 
 async function api(url, options) {
@@ -64,10 +52,48 @@ function formatCents(value) {
   return " · $" + (cents / 100).toFixed(2);
 }
 
-async function refresh() {
+function dash(value) {
+  return value || "—";
+}
+
+async function readDashboard() {
   const response = await api("/api/dashboard");
-  if (!response.ok) return;
-  const data = await response.json();
+  if (!response.ok) return null;
+  return response.json();
+}
+
+function repoRows(repos, withRemove) {
+  return (repos || []).map((repo) => {
+    const row = [
+      { label: "Repo", text: repo.full_name },
+      { label: "Branch", text: repo.branch },
+      { label: "Di STB", text: dash(repo.local_path) }
+    ];
+    if (withRemove) {
+      const remove = document.createElement("button");
+      remove.type = "button";
+      remove.className = "link";
+      remove.textContent = "Hapus";
+      remove.addEventListener("click", async () => {
+        const result = await api("/api/repos/remove", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: repo.id })
+        });
+        const payload = await result.json();
+        showStatus("#repo-status", payload.message || payload.error, !result.ok);
+        if (result.ok) refreshSettings();
+      });
+      row.push({ label: "Layanan", text: dash(repo.service) });
+      row.push({ label: "", node: remove });
+    }
+    return row;
+  });
+}
+
+async function refreshHome() {
+  const data = await readDashboard();
+  if (!data) return;
   document.querySelector("#auto-tokens").textContent = formatTokens(data.usage.auto.tokens);
   document.querySelector("#custom-tokens").textContent = formatTokens(data.usage.custom.tokens);
   document.querySelector("#auto-meta").textContent = data.usage.auto.runs + " pekerjaan" + formatCents(data.usage.auto.cents);
@@ -84,33 +110,7 @@ async function refresh() {
   } else {
     job.hidden = true;
   }
-  fillTable(
-    document.querySelector("#repos"),
-    (data.repos || []).map((repo) => {
-      const remove = document.createElement("button");
-      remove.type = "button";
-      remove.className = "link";
-      remove.textContent = "Hapus";
-      remove.addEventListener("click", async () => {
-        const result = await api("/api/repos/remove", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ id: repo.id })
-        });
-        const payload = await result.json();
-        showPageStatus(payload.message || payload.error, !result.ok);
-        if (result.ok) refresh();
-      });
-      return [
-        { label: "Repo", text: repo.full_name },
-        { label: "Branch", text: repo.branch },
-        { label: "Di STB", text: repo.local_path || "—" },
-        { label: "", node: remove }
-      ];
-    }),
-    4,
-    "Belum ada repo"
-  );
+  fillTable(document.querySelector("#repos"), repoRows(data.repos, false), 3, "Belum ada repo. Tambah dari Pengaturan.");
   fillTable(
     document.querySelector("#runs"),
     (data.runs || []).map((run) => [
@@ -123,89 +123,103 @@ async function refresh() {
     5,
     "Belum ada pekerjaan"
   );
-  if (!filled) {
-    chatEl.value = data.chat_id || "";
-    modeEl.value = data.model_mode || "auto";
-    customEl.value = data.custom_model || "";
-    cursorEl.placeholder = data.cursor_ready ? "tersimpan " + data.cursor_hint : "belum diisi";
-    tokenEl.placeholder = data.telegram_ready ? "tersimpan " + data.telegram_hint : "belum diisi";
-    githubEl.placeholder = data.github_ready ? "tersimpan " + data.github_hint : "opsional";
-    filled = true;
+}
+
+let settingsFilled = false;
+
+async function refreshSettings() {
+  const data = await readDashboard();
+  if (!data) return;
+  fillTable(document.querySelector("#repos"), repoRows(data.repos, true), 5, "Belum ada repo");
+  if (!settingsFilled) {
+    document.querySelector("#chat").value = data.chat_id || "";
+    document.querySelector("#model-mode").value = data.model_mode || "auto";
+    document.querySelector("#custom-model").value = data.custom_model || "";
+    document.querySelector("#cursor-key").placeholder = data.cursor_ready ? "tersimpan " + data.cursor_hint : "belum diisi";
+    document.querySelector("#token").placeholder = data.telegram_ready ? "tersimpan " + data.telegram_hint : "belum diisi";
+    document.querySelector("#github-token").placeholder = data.github_ready ? "tersimpan " + data.github_hint : "opsional";
+    settingsFilled = true;
   }
 }
 
-const settingsDialog = document.querySelector("#settings");
-document.querySelector("#open-settings").addEventListener("click", () => settingsDialog.showModal());
-document.querySelector("#close-settings").addEventListener("click", () => settingsDialog.close());
-document.querySelector("#logout").addEventListener("click", async () => {
-  await api("/logout", { method: "POST" });
-  location.href = "/login";
-});
-document.querySelector("#repo-form").addEventListener("submit", async (event) => {
-  event.preventDefault();
-  const response = await api("/api/repos", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      url: document.querySelector("#repo-url").value,
-      branch: document.querySelector("#repo-branch").value,
-      local_path: document.querySelector("#repo-path").value,
-      service: document.querySelector("#repo-service").value
-    })
+const logout = document.querySelector("#logout");
+if (logout) {
+  logout.addEventListener("click", async () => {
+    await api("/logout", { method: "POST" });
+    location.href = "/login";
   });
-  const data = await response.json();
-  showPageStatus(data.message || data.error, !response.ok);
-  if (response.ok) {
-    document.querySelector("#repo-url").value = "";
-    refresh();
-  }
-});
-document.querySelector("#save").addEventListener("click", async () => {
-  const response = await api("/api/settings", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      cursor_api_key: cursorEl.value,
-      telegram_token: tokenEl.value,
-      telegram_chat_id: chatEl.value,
-      github_token: githubEl.value,
-      model_mode: modeEl.value,
-      custom_model: customEl.value
-    })
-  });
-  const data = await response.json();
-  showStatus(data.message || data.error, !response.ok);
-  if (response.ok) {
-    cursorEl.value = "";
-    tokenEl.value = "";
-    githubEl.value = "";
-    filled = false;
-    refresh();
-  }
-});
-document.querySelector("#test").addEventListener("click", async () => {
-  const response = await api("/api/test-telegram", { method: "POST" });
-  const data = await response.json();
-  showStatus(data.message || data.error, !response.ok);
-});
-document.querySelector("#save-password").addEventListener("click", async () => {
-  const response = await api("/api/password", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      current: document.querySelector("#current-password").value,
-      new: document.querySelector("#new-password").value,
-      confirm: document.querySelector("#confirm-password").value
-    })
-  });
-  const data = await response.json();
-  showStatus(data.message || data.error, !response.ok);
-  if (response.ok) {
-    document.querySelector("#current-password").value = "";
-    document.querySelector("#new-password").value = "";
-    document.querySelector("#confirm-password").value = "";
-  }
-});
+}
 
-refresh();
-setInterval(refresh, 15000);
+if (document.querySelector("#auto-tokens")) {
+  refreshHome();
+  setInterval(refreshHome, 15000);
+}
+
+if (document.querySelector("#save")) {
+  refreshSettings();
+  setInterval(refreshSettings, 15000);
+  document.querySelector("#repo-form").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const response = await api("/api/repos", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        url: document.querySelector("#repo-url").value,
+        branch: document.querySelector("#repo-branch").value,
+        local_path: document.querySelector("#repo-path").value,
+        service: document.querySelector("#repo-service").value
+      })
+    });
+    const data = await response.json();
+    showStatus("#repo-status", data.message || data.error, !response.ok);
+    if (response.ok) {
+      document.querySelector("#repo-url").value = "";
+      document.querySelector("#repo-path").value = "";
+      document.querySelector("#repo-service").value = "";
+      refreshSettings();
+    }
+  });
+  document.querySelector("#save").addEventListener("click", async () => {
+    const response = await api("/api/settings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        cursor_api_key: document.querySelector("#cursor-key").value,
+        telegram_token: document.querySelector("#token").value,
+        telegram_chat_id: document.querySelector("#chat").value,
+        github_token: document.querySelector("#github-token").value,
+        model_mode: document.querySelector("#model-mode").value,
+        custom_model: document.querySelector("#custom-model").value
+      })
+    });
+    const data = await response.json();
+    showStatus("#credential-status", data.message || data.error, !response.ok);
+    if (response.ok) {
+      document.querySelector("#cursor-key").value = "";
+      document.querySelector("#token").value = "";
+      document.querySelector("#github-token").value = "";
+      settingsFilled = false;
+      refreshSettings();
+    }
+  });
+  document.querySelector("#test").addEventListener("click", async () => {
+    const response = await api("/api/test-telegram", { method: "POST" });
+    const data = await response.json();
+    showStatus("#credential-status", data.message || data.error, !response.ok);
+  });
+  document.querySelector("#password-form").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const response = await api("/api/password", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        current: document.querySelector("#current-password").value,
+        new: document.querySelector("#new-password").value,
+        confirm: document.querySelector("#confirm-password").value
+      })
+    });
+    const data = await response.json();
+    showStatus("#password-status", data.message || data.error, !response.ok);
+    if (response.ok) event.target.reset();
+  });
+}

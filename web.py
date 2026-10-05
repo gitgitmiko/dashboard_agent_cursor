@@ -235,6 +235,16 @@ def home(request: Request):
     return templates.TemplateResponse("app.html", {"request": request, "csrf": session["csrf"]})
 
 
+@app.get("/pengaturan", response_class=HTMLResponse)
+def settings_page(request: Request):
+    if not has_password():
+        return RedirectResponse("/setup", status_code=303)
+    session = require_session(request)
+    if not session:
+        return RedirectResponse("/login", status_code=303)
+    return templates.TemplateResponse("settings.html", {"request": request, "csrf": session["csrf"]})
+
+
 @app.get("/setup", response_class=HTMLResponse)
 def setup_page(request: Request):
     if has_password():

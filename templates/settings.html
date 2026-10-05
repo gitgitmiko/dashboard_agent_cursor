@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="robots" content="noindex" />
+<meta name="csrf" content="{{ csrf }}" />
+<title>Pengaturan · Gitgitmiko</title>
+<link rel="stylesheet" href="/static/app.css?v=8" />
+</head>
+<body>
+<header class="topbar">
+  <div>
+    <p class="brand">Gitgitmiko</p>
+    <h1>Pengaturan</h1>
+  </div>
+  <div class="top-actions">
+    <a class="button ghost" href="/">Dasbor</a>
+    <button type="button" id="logout" class="ghost">Keluar</button>
+  </div>
+</header>
+<main>
+  <section class="card">
+    <div class="section-head">
+      <h2>Kunci dan model</h2>
+      <p class="note">Kolom rahasia yang dikosongkan tetap memakai nilai yang sudah tersimpan. Repo GitHub perlu terhubung ke akun Cursor yang sama supaya agen cloud bisa push.</p>
+    </div>
+    <div class="split-3">
+      <div>
+        <h3>Cursor</h3>
+        <div class="field">
+          <label for="cursor-key">API key</label>
+          <input id="cursor-key" type="password" autocomplete="off" />
+          <p class="hint">Dari Dashboard Cursor, bagian API Keys.</p>
+        </div>
+        <div class="pair">
+          <div class="field">
+            <label for="model-mode">Model</label>
+            <select id="model-mode">
+              <option value="auto">Auto</option>
+              <option value="custom">Model sendiri</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="custom-model">Id model sendiri</label>
+            <input id="custom-model" placeholder="composer-2.5" />
+          </div>
+        </div>
+      </div>
+      <div>
+        <h3>Telegram</h3>
+        <div class="field">
+          <label for="token">Token bot</label>
+          <input id="token" type="password" autocomplete="off" />
+        </div>
+        <div class="field">
+          <label for="chat">Chat ID</label>
+          <input id="chat" inputmode="numeric" autocomplete="off" />
+          <p class="hint">Hanya chat ini yang boleh memberi perintah.</p>
+        </div>
+        <button type="button" id="test" class="ghost">Kirim pesan percobaan</button>
+      </div>
+      <div>
+        <h3>GitHub</h3>
+        <div class="field">
+          <label for="github-token">Token</label>
+          <input id="github-token" type="password" autocomplete="off" />
+          <p class="hint">Dipakai saat STB menarik repo privat.</p>
+        </div>
+      </div>
+    </div>
+    <div class="section-foot">
+      <p class="note" id="credential-status" role="status"></p>
+      <button type="button" id="save">Simpan kunci dan model</button>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="section-head">
+      <h2>Kata sandi</h2>
+      <p class="note">Minimal 10 karakter. Mengganti kata sandi tidak mengubah kunci yang sudah tersimpan.</p>
+    </div>
+    <form id="password-form" class="inline-form">
+      <div class="field">
+        <label for="current-password">Kata sandi sekarang</label>
+        <input id="current-password" type="password" autocomplete="current-password" />
+      </div>
+      <div class="field">
+        <label for="new-password">Kata sandi baru</label>
+        <input id="new-password" type="password" autocomplete="new-password" />
+      </div>
+      <div class="field">
+        <label for="confirm-password">Ulangi kata sandi baru</label>
+        <input id="confirm-password" type="password" autocomplete="new-password" />
+      </div>
+      <button type="submit" class="ghost">Ganti kata sandi</button>
+    </form>
+    <p class="note" id="password-status" role="status"></p>
+  </section>
+
+  <section class="card">
+    <div class="section-head">
+      <h2>Repo agen</h2>
+      <p class="note">Hanya repo di daftar ini yang bisa dikerjakan dari Telegram. Pilih repo di Telegram dengan /pilih, lalu kirim perintah coding.</p>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Repo</th><th>Branch</th><th>Di STB</th><th>Layanan</th><th></th></tr></thead>
+        <tbody id="repos"></tbody>
+      </table>
+    </div>
+    <form id="repo-form" class="form-grid">
+      <div class="field">
+        <label for="repo-url">Repo GitHub</label>
+        <input id="repo-url" placeholder="gitgitmiko/dashboard_agent_cursor" required />
+      </div>
+      <div class="field">
+        <label for="repo-branch">Branch</label>
+        <input id="repo-branch" value="main" />
+      </div>
+      <div class="field">
+        <label for="repo-path">Path lokal di STB</label>
+        <input id="repo-path" placeholder="/home/gitgitmiko/harga-hbar" />
+      </div>
+      <div class="field">
+        <label for="repo-service">Layanan setelah tarik</label>
+        <input id="repo-service" placeholder="harga-hbar" />
+      </div>
+      <button type="submit">Tambah repo</button>
+    </form>
+    <p class="note" id="repo-status" role="status"></p>
+  </section>
+</main>
+<script src="/static/app.js?v=8"></script>
+</body>
+</html>

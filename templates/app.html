@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex" />
 <meta name="csrf" content="{{ csrf }}" />
 <title>Gitgitmiko</title>
-<link rel="stylesheet" href="/static/app.css?v=7" />
+<link rel="stylesheet" href="/static/app.css?v=8" />
 </head>
 <body>
 <header class="topbar">
@@ -15,7 +15,7 @@
     <h1>Dasbor agen</h1>
   </div>
   <div class="top-actions">
-    <button type="button" id="open-settings" class="ghost">Pengaturan</button>
+    <a class="button ghost" href="/pengaturan">Pengaturan</a>
     <button type="button" id="logout" class="ghost">Keluar</button>
   </div>
 </header>
@@ -36,25 +36,13 @@
   </section>
   <section class="card">
     <h2>Repo agen</h2>
-    <p class="note">Hanya repo di daftar ini yang bisa dikerjakan dari Telegram. Pilih repo di Telegram dengan /pilih, lalu kirim perintah coding.</p>
+    <p class="note">Hanya repo di daftar ini yang bisa dikerjakan dari Telegram. Tambah atau hapus repo lewat Pengaturan.</p>
     <div class="table-wrap">
       <table>
-        <thead><tr><th>Repo</th><th>Branch</th><th>Di STB</th><th></th></tr></thead>
+        <thead><tr><th>Repo</th><th>Branch</th><th>Di STB</th></tr></thead>
         <tbody id="repos"></tbody>
       </table>
     </div>
-    <p class="note" id="page-status" role="status"></p>
-    <form id="repo-form">
-      <label for="repo-url">Repo GitHub</label>
-      <input id="repo-url" placeholder="gitgitmiko/dashboard_agent_cursor" required />
-      <label for="repo-branch">Branch</label>
-      <input id="repo-branch" value="main" />
-      <label for="repo-path">Path lokal di STB, kalau kode perlu ditarik ke sini</label>
-      <input id="repo-path" placeholder="/home/gitgitmiko/harga-hbar" />
-      <label for="repo-service">Layanan systemd yang dijalankan ulang setelah tarik</label>
-      <input id="repo-service" placeholder="harga-hbar" />
-      <button type="submit">Tambah repo</button>
-    </form>
   </section>
   <section class="card">
     <h2>Pekerjaan terakhir</h2>
@@ -66,54 +54,6 @@
     </div>
   </section>
 </main>
-<dialog id="settings">
-  <div class="settings-head">
-    <h2>Pengaturan</h2>
-    <button type="button" id="close-settings" class="ghost">Tutup</button>
-  </div>
-  <section>
-    <h3>Cursor</h3>
-    <p class="note">API key dari Dashboard Cursor. Kosongkan jika tidak ingin mengganti. Repo GitHub juga perlu terhubung ke akun Cursor yang sama supaya agen cloud bisa push.</p>
-    <label for="cursor-key">API key Cursor</label>
-    <input id="cursor-key" type="password" autocomplete="off" />
-    <label for="model-mode">Model</label>
-    <select id="model-mode">
-      <option value="auto">Auto</option>
-      <option value="custom">Model sendiri</option>
-    </select>
-    <label for="custom-model">Id model sendiri</label>
-    <input id="custom-model" placeholder="composer-2.5" />
-  </section>
-  <section>
-    <h3>Telegram</h3>
-    <p class="note">Hanya chat ID ini yang boleh memberi perintah. Kosongkan token jika tidak ingin menggantinya.</p>
-    <label for="token">Token bot</label>
-    <input id="token" type="password" autocomplete="off" />
-    <label for="chat">Chat ID</label>
-    <input id="chat" inputmode="numeric" autocomplete="off" />
-    <button type="button" id="test" class="ghost">Kirim pesan percobaan</button>
-  </section>
-  <section>
-    <h3>GitHub</h3>
-    <p class="note">Dipakai hanya saat STB menarik repo privat. Kosongkan jika tidak ingin mengganti.</p>
-    <label for="github-token">Token GitHub</label>
-    <input id="github-token" type="password" autocomplete="off" />
-  </section>
-  <section>
-    <h3>Kata sandi</h3>
-    <label for="current-password">Kata sandi sekarang</label>
-    <input id="current-password" type="password" autocomplete="current-password" />
-    <label for="new-password">Kata sandi baru</label>
-    <input id="new-password" type="password" autocomplete="new-password" />
-    <label for="confirm-password">Ulangi kata sandi baru</label>
-    <input id="confirm-password" type="password" autocomplete="new-password" />
-    <button type="button" id="save-password" class="ghost">Ganti kata sandi</button>
-  </section>
-  <div class="settings-actions">
-    <button type="button" id="save">Simpan pengaturan</button>
-  </div>
-  <p class="note" id="status" role="status"></p>
-</dialog>
-<script src="/static/app.js?v=7"></script>
+<script src="/static/app.js?v=8"></script>
 </body>
 </html>
