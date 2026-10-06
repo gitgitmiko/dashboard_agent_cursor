@@ -18,6 +18,7 @@ templates = Jinja2Templates(directory=str(store.ROOT / "templates"))
 SESSION_COOKIE = "hb_session"
 FORM_COOKIE = "hb_form"
 SESSION_MAX_AGE = 60 * 60 * 12
+BASE = "/agen"
 PASSWORD_MIN = 10
 PASSWORD_MAX = 128
 failures = {}
@@ -29,11 +30,17 @@ async def lifespan(_app):
     yield
 
 
+site = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
+site.mount("/static", StaticFiles(directory=str(store.ROOT / "static")), name="static")
 app = FastAPI(lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None)
-app.mount("/static", StaticFiles(directory=str(store.ROOT / "static")), name="static")
+app.mount(BASE, site)
 
 
-@app.middleware("http")
+def redirect(path):
+    return RedirectResponse(BASE + path, status_code=303)
+
+
+@site.middleware("http")
 async def security_headers(request, call_next):
     response = await call_next(request)
     response.headers["X-Content-Type-Options"] = "nosniff"
@@ -141,7 +148,7 @@ def write_session(response, request):
         httponly=True,
         samesite="strict",
         secure=request_is_https(request),
-        path="/",
+        path=BASE,
     )
     return token
 
@@ -150,7 +157,7 @@ def render_login(request, mode, error, status_code=200):
     token = secrets.token_urlsafe(24)
     response = templates.TemplateResponse(
         "login.html",
-        {"request": request, "mode": mode, "error": error, "form_csrf": token},
+        {"request": request, "mode": mode, "error": error, "form_csrf": token, "base": BASE},
         status_code=status_code,
     )
     response.set_cookie(
@@ -160,7 +167,7 @@ def render_login(request, mode, error, status_code=200):
         httponly=True,
         samesite="strict",
         secure=request_is_https(request),
-        path="/",
+        path=BASE,
     )
     return response
 
@@ -226,37 +233,37 @@ async def read_json(request):
     return incoming
 
 
-@app.get("/", response_class=HTMLResponse)
+@site.get("/", response_class=HTMLResponse)
 def home(request: Request):
     if not has_password():
-        return RedirectResponse("/setup", status_code=303)
+        return redirect("/setup")
     session = require_session(request)
     if not session:
-        return RedirectResponse("/login", status_code=303)
-    return templates.TemplateResponse("app.html", {"request": request, "csrf": session["csrf"]})
+        return redirect("/login")
+    return templates.TemplateResponse("app.html", {"request": request, "csrf": session["csrf"], "base": BASE})
 
 
-@app.get("/pengaturan", response_class=HTMLResponse)
+@site.get("/pengaturan", response_class=HTMLResponse)
 def settings_page(request: Request):
     if not has_password():
-        return RedirectResponse("/setup", status_code=303)
+        return redirect("/setup")
     session = require_session(request)
     if not session:
-        return RedirectResponse("/login", status_code=303)
-    return templates.TemplateResponse("settings.html", {"request": request, "csrf": session["csrf"]})
+        return redirect("/login")
+    return templates.TemplateResponse("settings.html", {"request": request, "csrf": session["csrf"], "base": BASE})
 
 
-@app.get("/setup", response_class=HTMLResponse)
+@site.get("/setup", response_class=HTMLResponse)
 def setup_page(request: Request):
     if has_password():
-        return RedirectResponse("/login", status_code=303)
+        return redirect("/login")
     return render_login(request, "setup", "")
 
 
-@app.post("/setup")
+@site.post("/setup")
 def setup_submit(request: Request, password: str = Form(""), confirm: str = Form(""), csrf: str = Form("")):
     if has_password():
-        return RedirectResponse("/login", status_code=303)
+        return redirect("/login")
     if not form_token_ok(request, csrf):
         return render_login(request, "setup", "Halaman kedaluwarsa. Muat ulang, lalu coba lagi.", 400)
     try:
@@ -264,25 +271,26 @@ def setup_submit(request: Request, password: str = Form(""), confirm: str = Form
     except ValueError as exc:
         return render_login(request, "setup", str(exc), 400)
     store_password(password)
-    response = RedirectResponse("/", status_code=303)
+    response = redirect("/")
     write_session(response, request)
+    response.delete_cookie(FORM_COOKIE, path=BASE)
     response.delete_cookie(FORM_COOKIE, path="/")
     return response
 
 
-@app.get("/login", response_class=HTMLResponse)
+@site.get("/login", response_class=HTMLResponse)
 def login_page(request: Request):
     if not has_password():
-        return RedirectResponse("/setup", status_code=303)
+        return redirect("/setup")
     if require_session(request):
-        return RedirectResponse("/", status_code=303)
+        return redirect("/")
     return render_login(request, "login", "")
 
 
-@app.post("/login")
+@site.post("/login")
 def login_submit(request: Request, password: str = Form(""), csrf: str = Form("")):
     if not has_password():
-        return RedirectResponse("/setup", status_code=303)
+        return redirect("/setup")
     key = client_key(request)
     if not form_token_ok(request, csrf):
         return render_login(request, "login", "Halaman kedaluwarsa. Muat ulang, lalu coba lagi.", 401)
@@ -292,25 +300,28 @@ def login_submit(request: Request, password: str = Form(""), csrf: str = Form(""
         mark_failure(key)
         return render_login(request, "login", "Kata sandi salah.", 401)
     clear_failures(key)
-    response = RedirectResponse("/", status_code=303)
+    response = redirect("/")
     write_session(response, request)
+    response.delete_cookie(FORM_COOKIE, path=BASE)
     response.delete_cookie(FORM_COOKIE, path="/")
+    response.delete_cookie(SESSION_COOKIE, path="/")
     return response
 
 
-@app.post("/logout")
+@site.post("/logout")
 def logout(request: Request):
     session = require_session(request)
     if session:
         denied = require_csrf(request, session)
         if denied:
             return denied
-    response = RedirectResponse("/login", status_code=303)
+    response = redirect("/login")
+    response.delete_cookie(SESSION_COOKIE, path=BASE)
     response.delete_cookie(SESSION_COOKIE, path="/")
     return response
 
 
-@app.get("/api/dashboard")
+@site.get("/api/dashboard")
 def dashboard(request: Request):
     session = require_session(request)
     if not session:
@@ -318,7 +329,7 @@ def dashboard(request: Request):
     return store.public_view()
 
 
-@app.post("/api/settings")
+@site.post("/api/settings")
 async def settings(request: Request):
     _session, denied = guard(request)
     if denied:
@@ -334,7 +345,7 @@ async def settings(request: Request):
         return JSONResponse({"error": str(exc)}, status_code=400)
 
 
-@app.post("/api/repos")
+@site.post("/api/repos")
 async def create_repo(request: Request):
     _session, denied = guard(request)
     if denied:
@@ -350,7 +361,7 @@ async def create_repo(request: Request):
         return JSONResponse({"error": str(exc)}, status_code=400)
 
 
-@app.post("/api/repos/remove")
+@site.post("/api/repos/remove")
 async def delete_repo(request: Request):
     _session, denied = guard(request)
     if denied:
@@ -364,7 +375,7 @@ async def delete_repo(request: Request):
         return JSONResponse({"error": str(exc)}, status_code=400)
 
 
-@app.post("/api/test-telegram")
+@site.post("/api/test-telegram")
 def test_telegram(request: Request):
     _session, denied = guard(request)
     if denied:
@@ -375,7 +386,7 @@ def test_telegram(request: Request):
         return JSONResponse({"error": bot.redact(exc)}, status_code=400)
 
 
-@app.post("/api/password")
+@site.post("/api/password")
 async def change_password(request: Request):
     _session, denied = guard(request)
     if denied:

@@ -5,8 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="robots" content="noindex" />
 <meta name="csrf" content="{{ csrf }}" />
+<meta name="app-base" content="{{ base }}" />
 <title>Gitgitmiko</title>
-<link rel="stylesheet" href="/static/app.css?v=14" />
+<link rel="stylesheet" href="{{ base }}/static/app.css?v=15" />
 </head>
 <body>
 <header class="topbar">
@@ -15,7 +16,7 @@
     <h1>Dasbor agen</h1>
   </div>
   <div class="top-actions">
-    <a class="button ghost" href="/pengaturan">Pengaturan</a>
+    <a class="button ghost" href="{{ base }}/pengaturan">Pengaturan</a>
     <button type="button" id="logout" class="ghost">Keluar</button>
   </div>
 </header>
@@ -77,6 +78,6 @@
     </div>
   </section>
 </main>
-<script src="/static/app.js?v=14"></script>
+<script src="{{ base }}/static/app.js?v=15"></script>
 </body>
 </html>

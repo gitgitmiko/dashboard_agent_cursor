@@ -1,4 +1,10 @@
 const csrf = document.querySelector('meta[name="csrf"]').content;
+const appBase = (document.querySelector('meta[name="app-base"]')?.getAttribute("content") || "").replace(/\/$/, "");
+
+function appPath(path) {
+  if (!path || path.charAt(0) !== "/") return path;
+  return appBase + path;
+}
 
 function showStatus(id, text, isError) {
   const el = document.querySelector(id);
@@ -10,8 +16,8 @@ function showStatus(id, text, isError) {
 async function api(url, options) {
   const opts = options || {};
   const headers = Object.assign({ "X-CSRF-Token": csrf }, opts.headers || {});
-  const response = await fetch(url, Object.assign({}, opts, { headers: headers, credentials: "same-origin" }));
-  if (response.status === 401) location.href = "/login";
+  const response = await fetch(appPath(url), Object.assign({}, opts, { headers: headers, credentials: "same-origin" }));
+  if (response.status === 401) location.href = appPath("/login");
   return response;
 }
 
@@ -211,7 +217,7 @@ const logout = document.querySelector("#logout");
 if (logout) {
   logout.addEventListener("click", async () => {
     await api("/logout", { method: "POST" });
-    location.href = "/login";
+    location.href = appPath("/login");
   });
 }
 
