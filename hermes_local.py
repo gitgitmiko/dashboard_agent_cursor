@@ -74,23 +74,23 @@ def _ensure_model():
             if lines[index] != replacement:
                 lines[index] = replacement
                 changed = True
+    if not any(
+        not line.lstrip().startswith("#") and line.strip() == "free_only: true"
+        for line in lines
+    ):
+        lines.extend(["auxiliary:", "  free_only: true"])
+        changed = True
     if changed:
         CONFIG_PATH.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
 def _restart():
-    subprocess.run(["pkill", "-f", str(BIN) + " gateway"], check=False)
+    subprocess.run(
+        ["pkill", "-f", r"sys\.exit\(main\(\)\).* gateway"],
+        check=False,
+    )
     time.sleep(1)
-    log = HERMES / "logs" / "gateway-boot.log"
-    log.parent.mkdir(parents=True, exist_ok=True)
-    env = os.environ.copy()
-    env["PATH"] = str(HOME / ".local" / "bin") + os.pathsep + env.get("PATH", "")
-    with log.open("a", encoding="utf-8") as handle:
-        subprocess.Popen(
-            [str(BIN), "gateway"],
-            stdout=handle,
-            stderr=subprocess.STDOUT,
-            start_new_session=True,
-            cwd=str(HOME),
-            env=env,
-        )
+    script = HERMES / "start-gateway.sh"
+    # `at` starts outside the dashboard service cgroup, so a later
+    # harga-hbar restart does not send SIGTERM to the gateway.
+    subprocess.run(["at", "now"], input=f"{script}\n".encode(), check=False)
