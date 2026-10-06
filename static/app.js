@@ -198,6 +198,10 @@ async function refreshSettings() {
     document.querySelector("#cursor-key").placeholder = data.cursor_ready ? "tersimpan " + data.cursor_hint : "belum diisi";
     document.querySelector("#token").placeholder = data.telegram_ready ? "tersimpan " + data.telegram_hint : "belum diisi";
     document.querySelector("#github-token").placeholder = data.github_ready ? "tersimpan " + data.github_hint : "opsional";
+    const hermesKey = document.querySelector("#hermes-key");
+    const hermesToken = document.querySelector("#hermes-token");
+    if (hermesKey) hermesKey.placeholder = data.hermes_key_hint ? "tersimpan " + data.hermes_key_hint : "belum diisi";
+    if (hermesToken) hermesToken.placeholder = data.hermes_token_hint ? "tersimpan " + data.hermes_token_hint : "belum diisi";
     settingsFilled = true;
   }
 }
@@ -269,7 +273,9 @@ if (document.querySelector("#save")) {
         cursor_api_key: document.querySelector("#cursor-key").value,
         telegram_token: document.querySelector("#token").value,
         telegram_chat_id: document.querySelector("#chat").value,
-        github_token: document.querySelector("#github-token").value
+        github_token: document.querySelector("#github-token").value,
+        hermes_api_key: document.querySelector("#hermes-key") ? document.querySelector("#hermes-key").value : "",
+        hermes_telegram_token: document.querySelector("#hermes-token") ? document.querySelector("#hermes-token").value : ""
       })
     });
     const data = await response.json();
@@ -278,6 +284,8 @@ if (document.querySelector("#save")) {
       document.querySelector("#cursor-key").value = "";
       document.querySelector("#token").value = "";
       document.querySelector("#github-token").value = "";
+      if (document.querySelector("#hermes-key")) document.querySelector("#hermes-key").value = "";
+      if (document.querySelector("#hermes-token")) document.querySelector("#hermes-token").value = "";
       settingsFilled = false;
       refreshSettings();
     }

@@ -11,6 +11,7 @@ from fastapi.templating import Jinja2Templates
 from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 
 import bot
+import hermes_local
 import store
 
 templates = Jinja2Templates(directory=str(store.ROOT / "templates"))
@@ -326,7 +327,9 @@ async def settings(request: Request):
     if incoming is None:
         return JSONResponse({"error": "permintaan tidak valid"}, status_code=400)
     try:
-        return {"message": store.save_settings(incoming)}
+        message = store.save_settings(incoming)
+        message += hermes_local.sync(store.get_config())
+        return {"message": message}
     except ValueError as exc:
         return JSONResponse({"error": str(exc)}, status_code=400)
 

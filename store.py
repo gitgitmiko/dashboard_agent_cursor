@@ -46,6 +46,8 @@ def default_config():
         "telegram_token": "",
         "telegram_chat_id": "",
         "github_token": "",
+        "hermes_api_key": "",
+        "hermes_telegram_token": "",
         "model_mode": "auto",
         "custom_model": "composer-2.5",
     }
@@ -284,9 +286,12 @@ def public_view():
         "cursor_ready": bool(str(cfg.get("cursor_api_key") or "").strip()),
         "telegram_ready": bool(str(cfg.get("telegram_token") or "").strip() and str(cfg.get("telegram_chat_id") or "").strip()),
         "github_ready": bool(str(cfg.get("github_token") or "").strip()),
+        "hermes_ready": bool(str(cfg.get("hermes_api_key") or "").strip() and str(cfg.get("hermes_telegram_token") or "").strip()),
         "cursor_hint": hint(cfg.get("cursor_api_key")),
         "telegram_hint": hint(cfg.get("telegram_token")),
         "github_hint": hint(cfg.get("github_token")),
+        "hermes_key_hint": hint(cfg.get("hermes_api_key")),
+        "hermes_token_hint": hint(cfg.get("hermes_telegram_token")),
     }
 
 
@@ -300,7 +305,7 @@ def save_settings(incoming):
         if isinstance(saved, dict):
             cfg.update(saved)
         had_repos = isinstance(saved, dict) and "repos" in saved
-        for field in ("cursor_api_key", "telegram_token", "github_token"):
+        for field in ("cursor_api_key", "telegram_token", "github_token", "hermes_api_key", "hermes_telegram_token"):
             value = str(incoming.get(field) or "").strip()
             if value:
                 cfg[field] = value

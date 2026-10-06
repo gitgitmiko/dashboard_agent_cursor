@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex" />
 <meta name="csrf" content="{{ csrf }}" />
 <title>Pengaturan · Gitgitmiko</title>
-<link rel="stylesheet" href="/static/app.css?v=10" />
+<link rel="stylesheet" href="/static/app.css?v=12" />
 </head>
 <body>
 <header class="topbar">
@@ -87,6 +87,32 @@
 
   <section class="card">
     <div class="section-head">
+      <h2>Hermes</h2>
+      <p class="note">Agen ini berjalan di STB dan bisa membaca folder repo di sana, termasuk berkas yang tidak ada di GitHub. Pakai bot Telegram yang berbeda dari bot dasbor. Chat ID di atas yang membatasi siapa yang boleh memberi perintah.</p>
+    </div>
+    <div class="split-3">
+      <div>
+        <h3>OpenRouter</h3>
+        <div class="field">
+          <label for="hermes-key">API key</label>
+          <input id="hermes-key" type="password" autocomplete="off" />
+          <p class="hint">Model selalu OpenRouter free. OpenRouter memilih model gratis yang bisa memakai alat.</p>
+        </div>
+      </div>
+      <div>
+        <h3>Bot Hermes</h3>
+        <div class="field">
+          <label for="hermes-token">Token bot</label>
+          <input id="hermes-token" type="password" autocomplete="off" />
+          <p class="hint">Buat lewat @BotFather. Jangan memakai token bot dasbor.</p>
+        </div>
+      </div>
+    </div>
+    <p class="note" id="hermes-status" role="status"></p>
+  </section>
+
+  <section class="card">
+    <div class="section-head">
       <h2>Repo agen</h2>
       <p class="note">Hanya repo di daftar ini yang bisa dikerjakan dari Telegram. Repo baru langsung ditarik ke folder sesuai nama reponya. Di Telegram: pilih repo, pilih model, lalu kirim perintah.</p>
     </div>
@@ -114,6 +140,6 @@
     <p class="note" id="repo-status" role="status"></p>
   </section>
 </main>
-<script src="/static/app.js?v=10"></script>
+<script src="/static/app.js?v=12"></script>
 </body>
 </html>
