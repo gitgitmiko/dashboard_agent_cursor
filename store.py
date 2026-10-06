@@ -220,7 +220,7 @@ def public_view():
     cfg = get_config()
     state = get_state()
     runs = []
-    for item in (state.get("runs") or [])[:40]:
+    for item in (state.get("runs") or [])[:200]:
         if not isinstance(item, dict):
             continue
         runs.append(

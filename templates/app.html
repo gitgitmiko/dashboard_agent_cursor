@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex" />
 <meta name="csrf" content="{{ csrf }}" />
 <title>Gitgitmiko</title>
-<link rel="stylesheet" href="/static/app.css?v=12" />
+<link rel="stylesheet" href="/static/app.css?v=13" />
 </head>
 <body>
 <header class="topbar">
@@ -50,15 +50,32 @@
     </div>
   </section>
   <section class="card">
-    <h2>Pekerjaan terakhir</h2>
+    <div class="runs-head">
+      <h2>Pekerjaan terakhir</h2>
+      <label class="page-size">
+        <span>Tampil</span>
+        <select id="runs-page-size" aria-label="Jumlah baris per halaman">
+          <option value="5" selected>5</option>
+          <option value="10">10</option>
+          <option value="20">20</option>
+          <option value="50">50</option>
+          <option value="100">100</option>
+        </select>
+      </label>
+    </div>
     <div class="table-wrap">
       <table>
         <thead><tr><th>Waktu</th><th>Repo</th><th>Mode</th><th>Token</th><th>Status</th></tr></thead>
         <tbody id="runs"></tbody>
       </table>
     </div>
+    <div class="pager" id="runs-pager" hidden>
+      <button type="button" class="ghost" id="runs-prev" aria-label="Halaman sebelumnya">Sebelumnya</button>
+      <p class="meta" id="runs-page-info">Halaman 1</p>
+      <button type="button" class="ghost" id="runs-next" aria-label="Halaman berikutnya">Berikutnya</button>
+    </div>
   </section>
 </main>
-<script src="/static/app.js?v=12"></script>
+<script src="/static/app.js?v=13"></script>
 </body>
 </html>

@@ -118,6 +118,53 @@ function modelLine(model) {
   return "model belum dipilih";
 }
 
+const RUNS_PAGE_SIZES = [5, 10, 20, 50, 100];
+let runsCache = [];
+let runsPage = 1;
+let runsPageSize = 5;
+
+function runsPageSizeValue() {
+  const select = document.querySelector("#runs-page-size");
+  if (!select) return runsPageSize;
+  const value = Number(select.value);
+  return RUNS_PAGE_SIZES.includes(value) ? value : 5;
+}
+
+function runRows(runs) {
+  return (runs || []).map((run) => [
+    { label: "Waktu", text: run.time },
+    { label: "Repo", text: run.repo },
+    { label: "Mode", text: run.mode === "auto" ? "Auto" : run.model },
+    { label: "Token", text: formatTokens(run.total_tokens) },
+    { label: "Status", text: run.status }
+  ]);
+}
+
+function renderRunsPage() {
+  const body = document.querySelector("#runs");
+  const pager = document.querySelector("#runs-pager");
+  const info = document.querySelector("#runs-page-info");
+  const prev = document.querySelector("#runs-prev");
+  const next = document.querySelector("#runs-next");
+  if (!body) return;
+  runsPageSize = runsPageSizeValue();
+  const total = runsCache.length;
+  const pageCount = Math.max(1, Math.ceil(total / runsPageSize) || 1);
+  if (runsPage > pageCount) runsPage = pageCount;
+  if (runsPage < 1) runsPage = 1;
+  const start = (runsPage - 1) * runsPageSize;
+  const slice = runsCache.slice(start, start + runsPageSize);
+  fillTable(body, runRows(slice), 5, "Belum ada pekerjaan");
+  if (pager) pager.hidden = total === 0;
+  if (info) {
+    info.textContent = total
+      ? "Halaman " + runsPage + " dari " + pageCount + " · " + total + " pekerjaan"
+      : "Halaman 1";
+  }
+  if (prev) prev.disabled = runsPage <= 1;
+  if (next) next.disabled = runsPage >= pageCount || total === 0;
+}
+
 async function refreshHome() {
   const data = await readDashboard();
   if (!data) return;
@@ -136,18 +183,8 @@ async function refreshHome() {
     job.hidden = true;
   }
   fillTable(document.querySelector("#repos"), repoRows(data.repos, false), 3, "Belum ada repo. Tambah dari Pengaturan.");
-  fillTable(
-    document.querySelector("#runs"),
-    (data.runs || []).map((run) => [
-      { label: "Waktu", text: run.time },
-      { label: "Repo", text: run.repo },
-      { label: "Mode", text: run.mode === "auto" ? "Auto" : run.model },
-      { label: "Token", text: formatTokens(run.total_tokens) },
-      { label: "Status", text: run.status }
-    ]),
-    5,
-    "Belum ada pekerjaan"
-  );
+  runsCache = data.runs || [];
+  renderRunsPage();
 }
 
 let settingsFilled = false;
@@ -174,6 +211,30 @@ if (logout) {
 }
 
 if (document.querySelector("#auto-tokens")) {
+  const pageSize = document.querySelector("#runs-page-size");
+  if (pageSize) {
+    pageSize.value = "5";
+    pageSize.addEventListener("change", () => {
+      runsPage = 1;
+      renderRunsPage();
+    });
+  }
+  const prev = document.querySelector("#runs-prev");
+  const next = document.querySelector("#runs-next");
+  if (prev) {
+    prev.addEventListener("click", () => {
+      if (runsPage > 1) {
+        runsPage -= 1;
+        renderRunsPage();
+      }
+    });
+  }
+  if (next) {
+    next.addEventListener("click", () => {
+      runsPage += 1;
+      renderRunsPage();
+    });
+  }
   refreshHome();
   setInterval(refreshHome, 15000);
 }
