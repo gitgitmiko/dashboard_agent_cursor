@@ -5,6 +5,8 @@ import subprocess
 import threading
 from pathlib import Path
 
+import hermes_local
+
 ROOT = Path(__file__).resolve().parent
 CONFIG_PATH = ROOT / "config.json"
 STATE_PATH = ROOT / "state.json"
@@ -236,8 +238,13 @@ def public_view():
                 "raw_cost_cents": item.get("raw_cost_cents"),
                 "status": item.get("status") or "",
                 "summary": item.get("summary") or "",
+                "source": "cursor",
             }
         )
+    for item in hermes_local.recent_runs():
+        runs.append(item)
+    runs.sort(key=lambda item: item.get("time") or "", reverse=True)
+    runs = runs[:200]
     usage = {
         "auto": {"tokens": 0, "runs": 0, "cents": 0, "raw_cents": 0, "percent": 0},
         "custom": {"tokens": 0, "runs": 0, "cents": 0, "raw_cents": 0, "percent": 0},

@@ -133,8 +133,9 @@ function runsPageSizeValue() {
 function runRows(runs) {
   return (runs || []).map((run) => [
     { label: "Waktu", text: run.time },
-    { label: "Repo", text: run.repo },
-    { label: "Mode", text: run.mode === "auto" ? "Auto" : run.model },
+    { label: "Sumber", text: run.source === "hermes" ? "Hermes" : "Cursor" },
+    { label: "Pekerjaan", text: run.repo },
+    { label: "Mode", text: run.source === "hermes" ? (run.model || "Hermes") : (run.mode === "auto" ? "Auto" : run.model) },
     { label: "Token", text: formatTokens(run.total_tokens) },
     { label: "Status", text: run.status }
   ]);
@@ -154,7 +155,7 @@ function renderRunsPage() {
   if (runsPage < 1) runsPage = 1;
   const start = (runsPage - 1) * runsPageSize;
   const slice = runsCache.slice(start, start + runsPageSize);
-  fillTable(body, runRows(slice), 5, "Belum ada pekerjaan");
+  fillTable(body, runRows(slice), 6, "Belum ada pekerjaan");
   if (pager) pager.hidden = total === 0;
   if (info) {
     info.textContent = total
