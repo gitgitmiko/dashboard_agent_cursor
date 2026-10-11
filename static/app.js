@@ -82,6 +82,73 @@ function dash(value) {
   return value || "—";
 }
 
+function formatBytes(value) {
+  let size = Number(value || 0);
+  const units = ["B", "KB", "MB", "GB", "TB"];
+  let index = 0;
+  while (size >= 1024 && index < units.length - 1) {
+    size /= 1024;
+    index += 1;
+  }
+  const digits = size >= 10 || index === 0 ? 0 : 1;
+  return size.toLocaleString("id-ID", { maximumFractionDigits: digits, minimumFractionDigits: digits }) + " " + units[index];
+}
+
+function formatUptime(seconds) {
+  const total = Math.max(0, Number(seconds || 0));
+  const days = Math.floor(total / 86400);
+  const hours = Math.floor((total % 86400) / 3600);
+  const minutes = Math.floor((total % 3600) / 60);
+  if (days) return days + " hari " + hours + " jam";
+  if (hours) return hours + " jam " + minutes + " menit";
+  return minutes + " menit";
+}
+
+function fillDisk(percentId, metaId, disk) {
+  const percent = document.querySelector(percentId);
+  const meta = document.querySelector(metaId);
+  if (!disk) {
+    if (percent) percent.textContent = "—";
+    if (meta) meta.textContent = "tidak terpasang";
+    return;
+  }
+  if (percent) percent.textContent = formatPercent(disk.percent);
+  if (meta) meta.textContent = formatBytes(disk.used) + " terpakai · " + formatBytes(disk.avail) + " kosong";
+}
+
+function fillHost(host) {
+  const cpu = document.querySelector("#stb-cpu");
+  if (!cpu) return;
+  if (!host || !host.available) {
+    cpu.textContent = "—";
+    document.querySelector("#cctv-state").textContent = "Status mesin tidak tersedia";
+    return;
+  }
+  cpu.textContent = host.cpu_percent == null ? "…" : formatPercent(host.cpu_percent);
+  const load = (host.load || []).map((item) => Number(item).toLocaleString("id-ID", { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+  document.querySelector("#stb-load").textContent = "beban " + load.join(" · ") + " · " + host.cores + " inti";
+  const memory = host.memory || {};
+  const ramPercent = memory.total ? (100 * memory.used) / memory.total : 0;
+  document.querySelector("#stb-ram").textContent = formatPercent(ramPercent);
+  document.querySelector("#stb-ram-meta").textContent = formatBytes(memory.used) + " dari " + formatBytes(memory.total);
+  const swap = host.swap || {};
+  const swapPercent = swap.total ? (100 * swap.used) / swap.total : 0;
+  document.querySelector("#stb-swap").textContent = swap.total ? formatPercent(swapPercent) : "—";
+  document.querySelector("#stb-swap-meta").textContent = swap.total ? formatBytes(swap.used) + " dari " + formatBytes(swap.total) : "tidak ada";
+  fillDisk("#stb-root", "#stb-root-meta", host.root_disk);
+  fillDisk("#stb-cctv-disk", "#stb-cctv-disk-meta", host.cctv_disk);
+  document.querySelector("#stb-up").textContent = formatUptime(host.uptime_seconds);
+  const cctv = host.cctv || {};
+  const state = document.querySelector("#cctv-state");
+  state.textContent = cctv.state || "—";
+  state.classList.toggle("is-up", cctv.state === "merekam");
+  state.classList.toggle("is-down", cctv.state === "berhenti");
+  const latest = cctv.latest;
+  const bits = ["retensi " + (cctv.retention_days || 30) + " hari"];
+  if (latest) bits.push("berkas " + latest.name, formatBytes(latest.size), latest.time);
+  document.querySelector("#cctv-meta").textContent = bits.join(" · ");
+}
+
 async function readDashboard() {
   const response = await api("/api/dashboard");
   if (!response.ok) return null;
@@ -177,6 +244,7 @@ async function refreshHome() {
   if (!data) return;
   fillUsageCard("auto", data.usage.auto || {});
   fillUsageCard("custom", data.usage.custom || {});
+  fillHost(data.host);
   const ready = [
     data.cursor_ready ? "Cursor tersimpan" : "Cursor belum diisi",
     data.telegram_ready ? "Telegram tersambung" : "Telegram belum lengkap"

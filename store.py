@@ -6,6 +6,7 @@ import threading
 from pathlib import Path
 
 import hermes_local
+import stb_status
 
 ROOT = Path(__file__).resolve().parent
 CONFIG_PATH = ROOT / "config.json"
@@ -299,6 +300,7 @@ def public_view():
         "github_hint": hint(cfg.get("github_token")),
         "hermes_key_hint": hint(cfg.get("hermes_api_key")),
         "hermes_token_hint": hint(cfg.get("hermes_telegram_token")),
+        "host": stb_status.snapshot(),
     }
 
 

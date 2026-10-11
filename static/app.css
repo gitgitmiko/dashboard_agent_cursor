@@ -87,6 +87,11 @@ main { max-width: 72rem; margin: 0 auto; padding: 1rem max(1.25rem, env(safe-are
 .amount { font-size: 1.8rem; margin: 0; font-variant-numeric: tabular-nums; }
 .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.8rem; }
 .card { padding: 1rem 1rem 1.1rem; margin-top: 0.8rem; }
+.stat-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.85rem 1rem; }
+.stat-grid .amount { font-size: 1.35rem; }
+.stat-grid .meta { margin: 0.15rem 0 0; font-size: 0.88rem; }
+#cctv-state.is-up { color: var(--up); }
+#cctv-state.is-down { color: var(--down); }
 .usage-track {
   margin-top: 0.7rem;
   height: 0.45rem;
@@ -192,7 +197,7 @@ th { color: var(--muted); font-weight: 550; }
   .form-grid button { grid-column: 1 / -1; width: 100%; }
 }
 @media (max-width: 800px) {
-  .grid { grid-template-columns: 1fr; }
+  .grid, .stat-grid { grid-template-columns: 1fr; }
   .topbar {
     align-items: stretch;
     flex-direction: column;

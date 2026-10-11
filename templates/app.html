@@ -7,7 +7,7 @@
 <meta name="csrf" content="{{ csrf }}" />
 <meta name="app-base" content="{{ base }}" />
 <title>Gitgitmiko</title>
-<link rel="stylesheet" href="{{ base }}/static/app.css?v=15" />
+<link rel="stylesheet" href="{{ base }}/static/app.css?v=16" />
 </head>
 <body>
 <header class="topbar">
@@ -40,6 +40,46 @@
     </article>
   </section>
   <p class="note" id="usage-note">Angka dolar adalah nilai pemakaian agen menurut Cursor untuk pekerjaan yang tercatat di dasbor ini. Selama masih dalam kuota included paket (misalnya Pro $20), itu mengurangi kuota paket—bukan biaya di luar langganan. Tagihan ekstra hanya muncul jika on-demand aktif setelah kuota included habis. Persentase membandingkan Auto vs custom di dasbor ini; persen kuota resmi paket ada di Cursor → Spending.</p>
+  <section class="card">
+    <h2>Mesin STB</h2>
+    <div class="stat-grid">
+      <div>
+        <p class="meta">CPU</p>
+        <p class="amount" id="stb-cpu">…</p>
+        <p class="meta" id="stb-load">…</p>
+      </div>
+      <div>
+        <p class="meta">RAM</p>
+        <p class="amount" id="stb-ram">…</p>
+        <p class="meta" id="stb-ram-meta">…</p>
+      </div>
+      <div>
+        <p class="meta">Swap</p>
+        <p class="amount" id="stb-swap">…</p>
+        <p class="meta" id="stb-swap-meta">…</p>
+      </div>
+      <div>
+        <p class="meta">Disk sistem</p>
+        <p class="amount" id="stb-root">…</p>
+        <p class="meta" id="stb-root-meta">…</p>
+      </div>
+      <div>
+        <p class="meta">Disk rekaman</p>
+        <p class="amount" id="stb-cctv-disk">…</p>
+        <p class="meta" id="stb-cctv-disk-meta">…</p>
+      </div>
+      <div>
+        <p class="meta">Menyala</p>
+        <p class="amount" id="stb-up">…</p>
+        <p class="meta" id="stb-up-meta">sejak boot</p>
+      </div>
+    </div>
+  </section>
+  <section class="card">
+    <h2>Rekaman CCTV</h2>
+    <p class="amount" id="cctv-state">…</p>
+    <p class="meta" id="cctv-meta">…</p>
+  </section>
   <section class="card">
     <h2>Repo agen</h2>
     <p class="note">Hanya repo di daftar ini yang bisa dikerjakan dari Telegram. Di Telegram: pilih repo, pilih model, lalu kirim perintah.</p>
@@ -78,6 +118,6 @@
     </div>
   </section>
 </main>
-<script src="{{ base }}/static/app.js?v=15"></script>
+<script src="{{ base }}/static/app.js?v=16"></script>
 </body>
 </html>
