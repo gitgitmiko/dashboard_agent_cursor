@@ -301,6 +301,7 @@ def public_view():
         "hermes_key_hint": hint(cfg.get("hermes_api_key")),
         "hermes_token_hint": hint(cfg.get("hermes_telegram_token")),
         "host": stb_status.snapshot(),
+        "openrouter": hermes_local.free_usage(),
     }
 
 

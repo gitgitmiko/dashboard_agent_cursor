@@ -153,6 +153,13 @@ main { max-width: 72rem; margin: 0 auto; padding: 1rem max(1.25rem, env(safe-are
   cursor: not-allowed;
 }
 .pager .meta { margin: 0; text-align: center; }
+.cctv-tools { margin-top: 1rem; }
+.cctv-tools h3 { margin: 0; }
+.cctv-filters { display: flex; gap: 0.8rem; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+.page-size input[type="date"] { width: auto; min-height: 36px; padding: 0.35rem 0.55rem; }
+.align-end { text-align: right; }
+.cell-actions { display: inline-flex; gap: 0.35rem; justify-content: flex-end; flex-wrap: wrap; }
+.cell-actions a.button { margin: 0; min-height: 36px; padding: 0.35rem 0.7rem; white-space: nowrap; }
 .table-wrap { overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
 th, td { text-align: left; padding: 0.5rem 0.35rem; border-bottom: 1px solid var(--line); vertical-align: top; font-size: 0.92rem; }
@@ -221,6 +228,8 @@ th { color: var(--muted); font-weight: 550; }
     flex-direction: column;
     align-items: stretch;
   }
+  .cctv-filters { justify-content: space-between; }
+  .cctv-filters .page-size { width: 100%; }
   .page-size { justify-content: space-between; }
   .pager {
     flex-direction: column;

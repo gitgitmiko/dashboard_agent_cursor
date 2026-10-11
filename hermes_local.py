@@ -110,6 +110,60 @@ def recent_runs(limit=200):
     return runs
 
 
+def _task_label(task):
+    name = str(task or "").strip()
+    if not name:
+        return "Percakapan"
+    if name == "background_review":
+        return "Tugas sampingan"
+    return _clip(name)
+
+
+def free_usage(limit=30):
+    path = _hermes_db()
+    empty = {"rows": [], "calls": 0, "tokens": 0}
+    if not path.is_file():
+        return empty
+    try:
+        connection = sqlite3.connect(path.resolve().as_uri() + "?mode=ro", uri=True, timeout=1)
+    except (OSError, sqlite3.Error):
+        return empty
+    try:
+        connection.row_factory = sqlite3.Row
+        rows = connection.execute(
+            """
+            SELECT model, task, api_call_count, input_tokens, output_tokens, reasoning_tokens, last_seen
+            FROM session_model_usage
+            WHERE model LIKE '%free%'
+            ORDER BY last_seen DESC
+            LIMIT ?
+            """,
+            (max(1, int(limit)),),
+        ).fetchall()
+    except sqlite3.Error:
+        return empty
+    finally:
+        connection.close()
+    items = []
+    calls = 0
+    tokens = 0
+    for row in rows:
+        count = int(row["api_call_count"] or 0)
+        total = int(row["input_tokens"] or 0) + int(row["output_tokens"] or 0) + int(row["reasoning_tokens"] or 0)
+        calls += count
+        tokens += total
+        items.append(
+            {
+                "time": _wib(row["last_seen"]),
+                "model": row["model"] or MODEL,
+                "task": _task_label(row["task"]),
+                "calls": count,
+                "tokens": total,
+            }
+        )
+    return {"rows": items, "calls": calls, "tokens": tokens}
+
+
 def sync(cfg):
     if not HERMES.is_dir() or not BIN.is_file():
         return ""

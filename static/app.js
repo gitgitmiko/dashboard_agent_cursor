@@ -37,6 +37,7 @@ function fillTable(body, rows, columns, emptyText) {
     row.forEach((value) => {
       const td = document.createElement("td");
       td.dataset.label = value.label;
+      if (value.align === "end") td.classList.add("align-end");
       const span = document.createElement("span");
       span.className = "cell-value";
       if (value.node) span.appendChild(value.node);
@@ -149,6 +150,22 @@ function fillHost(host) {
   document.querySelector("#cctv-meta").textContent = bits.join(" · ");
 }
 
+function fillFree(usage) {
+  const body = document.querySelector("#free-usage");
+  const summary = document.querySelector("#free-summary");
+  if (!body || !summary) return;
+  const data = usage || {};
+  summary.textContent = (data.calls || 0).toLocaleString("id-ID") + " panggilan · " + formatTokens(data.tokens || 0) + " token · biaya gratis";
+  const rows = (data.rows || []).map((item) => [
+    { label: "Terakhir", text: item.time },
+    { label: "Model", text: item.model },
+    { label: "Tugas", text: item.task },
+    { label: "Panggilan", text: Number(item.calls || 0).toLocaleString("id-ID") },
+    { label: "Token", text: formatTokens(item.tokens) }
+  ]);
+  fillTable(body, rows, 5, "Belum ada pemakaian model gratis");
+}
+
 async function readDashboard() {
   const response = await api("/api/dashboard");
   if (!response.ok) return null;
@@ -245,6 +262,7 @@ async function refreshHome() {
   fillUsageCard("auto", data.usage.auto || {});
   fillUsageCard("custom", data.usage.custom || {});
   fillHost(data.host);
+  fillFree(data.openrouter);
   const ready = [
     data.cursor_ready ? "Cursor tersimpan" : "Cursor belum diisi",
     data.telegram_ready ? "Telegram tersambung" : "Telegram belum lengkap"
@@ -289,6 +307,99 @@ if (logout) {
   });
 }
 
+const CCTV_PAGE_SIZES = [5, 10, 20, 50, 100];
+let cctvRows = [];
+let cctvPage = 1;
+let cctvPageSize = 5;
+let cctvActiveDate = "";
+let cctvDateReady = false;
+
+function cctvPageSizeValue() {
+  const select = document.querySelector("#cctv-page-size");
+  if (!select) return cctvPageSize;
+  const value = Number(select.value);
+  return CCTV_PAGE_SIZES.includes(value) ? value : 5;
+}
+
+function cctvDownloadLink(file) {
+  const link = document.createElement("a");
+  link.className = "button ghost";
+  link.href = appPath("/api/cctv/download?date=" + encodeURIComponent(cctvActiveDate) + "&name=" + encodeURIComponent(file.name));
+  link.textContent = file.solo ? "Unduh" : file.start;
+  link.setAttribute("aria-label", "Unduh rekaman jam " + file.name.slice(0, 2) + " mulai " + file.start);
+  return link;
+}
+
+function cctvRowsView(rows) {
+  return (rows || []).map((row) => {
+    const files = row.files || [];
+    const actions = document.createElement("span");
+    actions.className = "cell-actions";
+    files.forEach((file) => {
+      actions.appendChild(cctvDownloadLink({
+        name: file.name,
+        start: file.start,
+        solo: files.length === 1
+      }));
+    });
+    const hour = row.recording ? row.hour + " · sedang merekam" : row.hour;
+    const clips = files.length === 1 ? files[0].start : files.length + " berkas";
+    return [
+      { label: "Jam", text: hour },
+      { label: "Berkas", text: clips },
+      { label: "Ukuran", text: formatBytes(row.size) },
+      { label: "Aksi", align: "end", node: actions }
+    ];
+  });
+}
+
+function renderCctvPage() {
+  const body = document.querySelector("#cctv-rows");
+  const pager = document.querySelector("#cctv-pager");
+  const info = document.querySelector("#cctv-page-info");
+  const prev = document.querySelector("#cctv-prev");
+  const next = document.querySelector("#cctv-next");
+  if (!body) return;
+  cctvPageSize = cctvPageSizeValue();
+  const total = cctvRows.length;
+  const pageCount = Math.max(1, Math.ceil(total / cctvPageSize) || 1);
+  if (cctvPage > pageCount) cctvPage = pageCount;
+  if (cctvPage < 1) cctvPage = 1;
+  const start = (cctvPage - 1) * cctvPageSize;
+  fillTable(body, cctvRowsView(cctvRows.slice(start, start + cctvPageSize)), 4, "Belum ada rekaman pada tanggal ini");
+  if (pager) pager.hidden = total === 0;
+  if (info) {
+    info.textContent = total
+      ? "Halaman " + cctvPage + " dari " + pageCount + " · " + total + " jam"
+      : "Halaman 1";
+  }
+  if (prev) prev.disabled = cctvPage <= 1;
+  if (next) next.disabled = cctvPage >= pageCount || total === 0;
+}
+
+async function loadRecordings() {
+  const input = document.querySelector("#cctv-date");
+  if (!input) return;
+  const chosen = cctvDateReady ? input.value : "";
+  const response = await api("/api/cctv/recordings?date=" + encodeURIComponent(chosen));
+  if (!response.ok) {
+    cctvRows = [];
+    renderCctvPage();
+    return;
+  }
+  const data = await response.json();
+  if (!cctvDateReady) {
+    input.value = data.date || data.today || "";
+    if (data.today) input.max = data.today;
+    const dates = data.dates || [];
+    if (dates.length) input.min = dates[dates.length - 1];
+    cctvDateReady = true;
+  }
+  cctvActiveDate = data.date || input.value;
+  cctvRows = data.rows || [];
+  renderCctvPage();
+}
+
 if (document.querySelector("#auto-tokens")) {
   const pageSize = document.querySelector("#runs-page-size");
   if (pageSize) {
@@ -314,8 +425,41 @@ if (document.querySelector("#auto-tokens")) {
       renderRunsPage();
     });
   }
+  const cctvPageSizeSelect = document.querySelector("#cctv-page-size");
+  if (cctvPageSizeSelect) {
+    cctvPageSizeSelect.value = "5";
+    cctvPageSizeSelect.addEventListener("change", () => {
+      cctvPage = 1;
+      renderCctvPage();
+    });
+  }
+  const cctvDate = document.querySelector("#cctv-date");
+  if (cctvDate) {
+    cctvDate.addEventListener("change", () => {
+      cctvPage = 1;
+      loadRecordings();
+    });
+  }
+  const cctvPrev = document.querySelector("#cctv-prev");
+  const cctvNext = document.querySelector("#cctv-next");
+  if (cctvPrev) {
+    cctvPrev.addEventListener("click", () => {
+      if (cctvPage > 1) {
+        cctvPage -= 1;
+        renderCctvPage();
+      }
+    });
+  }
+  if (cctvNext) {
+    cctvNext.addEventListener("click", () => {
+      cctvPage += 1;
+      renderCctvPage();
+    });
+  }
   refreshHome();
+  loadRecordings();
   setInterval(refreshHome, 15000);
+  setInterval(loadRecordings, 15000);
 }
 
 if (document.querySelector("#save")) {

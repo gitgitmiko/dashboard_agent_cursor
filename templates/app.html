@@ -7,7 +7,7 @@
 <meta name="csrf" content="{{ csrf }}" />
 <meta name="app-base" content="{{ base }}" />
 <title>Gitgitmiko</title>
-<link rel="stylesheet" href="{{ base }}/static/app.css?v=16" />
+<link rel="stylesheet" href="{{ base }}/static/app.css?v=18" />
 </head>
 <body>
 <header class="topbar">
@@ -79,6 +79,48 @@
     <h2>Rekaman CCTV</h2>
     <p class="amount" id="cctv-state">…</p>
     <p class="meta" id="cctv-meta">…</p>
+    <div class="runs-head cctv-tools">
+      <h3>Per jam</h3>
+      <div class="cctv-filters">
+        <label class="page-size">
+          <span>Tanggal</span>
+          <input type="date" id="cctv-date" aria-label="Tanggal rekaman" />
+        </label>
+        <label class="page-size">
+          <span>Tampil</span>
+          <select id="cctv-page-size" aria-label="Jumlah jam per halaman">
+            <option value="5" selected>5</option>
+            <option value="10">10</option>
+            <option value="20">20</option>
+            <option value="50">50</option>
+            <option value="100">100</option>
+          </select>
+        </label>
+      </div>
+    </div>
+    <p class="note">Satu baris adalah satu jam, dari jam terbaru. Jika perekam sempat berhenti, jam itu punya beberapa berkas dan masing-masing bisa diunduh.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Jam</th><th>Berkas</th><th>Ukuran</th><th class="align-end">Aksi</th></tr></thead>
+        <tbody id="cctv-rows"></tbody>
+      </table>
+    </div>
+    <div class="pager" id="cctv-pager" hidden>
+      <button type="button" class="ghost" id="cctv-prev" aria-label="Halaman sebelumnya">Sebelumnya</button>
+      <p class="meta" id="cctv-page-info">Halaman 1</p>
+      <button type="button" class="ghost" id="cctv-next" aria-label="Halaman berikutnya">Berikutnya</button>
+    </div>
+  </section>
+  <section class="card">
+    <h2>Model gratis</h2>
+    <p class="note">OpenRouter mencatat pemakaian sebagai openrouter/free. Nama model acak yang menjawab tiap permintaan tidak dikirim kembali ke Hermes.</p>
+    <p class="meta" id="free-summary">…</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Terakhir</th><th>Model</th><th>Tugas</th><th>Panggilan</th><th>Token</th></tr></thead>
+        <tbody id="free-usage"></tbody>
+      </table>
+    </div>
   </section>
   <section class="card">
     <h2>Repo agen</h2>
@@ -118,6 +160,6 @@
     </div>
   </section>
 </main>
-<script src="{{ base }}/static/app.js?v=16"></script>
+<script src="{{ base }}/static/app.js?v=18"></script>
 </body>
 </html>

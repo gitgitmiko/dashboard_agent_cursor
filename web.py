@@ -5,12 +5,13 @@ import time
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Form, Request
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 
 import bot
+import cctv_library
 import hermes_local
 import store
 
@@ -318,6 +319,31 @@ def logout(request: Request):
     response = redirect("/login")
     response.delete_cookie(SESSION_COOKIE, path=BASE)
     response.delete_cookie(SESSION_COOKIE, path="/")
+    return response
+
+
+@site.get("/api/cctv/recordings")
+def cctv_recordings(request: Request, date: str = ""):
+    session = require_session(request)
+    if not session:
+        return JSONResponse({"error": "masuk dulu"}, status_code=401)
+    try:
+        return cctv_library.list_recordings(date)
+    except ValueError as exc:
+        return JSONResponse({"error": str(exc)}, status_code=400)
+
+
+@site.get("/api/cctv/download")
+def cctv_download(request: Request, date: str = "", name: str = ""):
+    session = require_session(request)
+    if not session:
+        return JSONResponse({"error": "masuk dulu"}, status_code=401)
+    path = cctv_library.clip_path(date, name)
+    if path is None:
+        return JSONResponse({"error": "rekaman tidak ditemukan"}, status_code=404)
+    filename = "cctv-" + date + "-" + name
+    response = FileResponse(path, media_type="video/mp4")
+    response.headers["Content-Disposition"] = 'attachment; filename="' + filename + '"'
     return response
 
 
